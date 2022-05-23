@@ -1,0 +1,1191 @@
+% !TEX encoding = UTF-8 Unicode
+% !TEX program = xelatex
+% !TEX spellcheck = English
+% !TEX pdfSinglePage
+
+
+
+\documentclass[12pt,aspectratio=1610]{beamer}
+	\beamertemplatenavigationsymbolsempty
+	\setbeamercovered{transparent}
+	\setbeamersize{text margin left=3mm,text margin right=3mm}
+	\overfullrule1em
+	\def\pp{\pause\par}
+	\advance\parskip\fill
+	\def\BCMH{\gdef\beamer@currentmode{handout}}
+	\def\BCMB{\gdef\beamer@currentmode{beamer}}
+
+\catcode`激13 \def激#1{\lccode`~`#1\lowercase{\catcode`#113\def~}}
+	激色#1♯#2 {\definecolor{#1}{HTML}{#2}}
+	色PMS2767♯182B49   色PMS3015♯00629B   色PMS1245♯C69214   色PMS116♯FFCD00     
+	色PMS3115♯00C6D7   色PMS7490♯6E963B   色PMS3945♯F3E500   色PMS144♯FC8900     
+	色Black♯000000     色CoolGray9♯747678 色PMS401♯B6B1A9    色Metallic871♯84754E
+
+	\setbeamercolor{normal text}{bg=PMS3015,fg=white}
+	\setbeamercolor{structure}{fg=PMS116}
+	\setbeamercolor{alerted text}{fg=PMS144}
+	\setbeamercolor{example text}{fg=PMS7490}
+
+\usepackage{xurl}
+	\hypersetup{pdfsubject=q-bio.QM; 15A78}
+
+\usepackage{mathtools,unicode-math}
+	\setmainfont{NotoSansTC-Light}
+	\setsansfont{NotoSansTC-Light}
+	\setmonofont{NotoSansTC-Light}
+	\setmathfont[sans-style=literal]{texgyrepagella-math.otf}
+	
+	激㏒{\log} 激㏑{\ln} 激÷{\frac} 激†#1†{\text{#1}}
+
+\usepackage{tikz,tikz-cd,tikz-3dplot,pgfplots}
+	\usetikzlibrary{backgrounds}
+	% https://tex.stackexchange.com/q/420034/
+	\pgfmathdeclarefunction*{axis_height}0{\begingroup\pgfmathreturn.25em\endgroup}
+	\pgfmathdeclarefunction*{rule_thickness}0{\begingroup\pgfmathreturn.06em\endgroup}
+	\pgfmathdeclarefunction*{lw}0{\begingroup\pgfmathreturn.06em\endgroup}
+	\tikzset{
+		every picture/.style={cap=round,join=round,line width=rule_thickness},
+		% https://tex.stackexchange.com/q/146908/
+		alt/.code args={<#1>#2#3}{\alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}}},
+		uncover/.style={alt=#1{}{opacity=.15}},
+	}
+	\pgfplotsset{
+		compat/show suggested version=false,compat=1.17,
+		width=10cm,height=7.5cm
+	}
+
+\usepackage{pgfplotstable,booktabs,colortbl}
+	\pgfplotsset{compat/.cd,show suggested version=false,=1.17}
+
+\title[PCR Group Testing]{PCR, Tropical Arithmetic, and Group Testing}
+\author[Wang--Gabrys--Vardy]{Hsin-Po Wang \texorpdfstring\\{}
+                             with Ryan Gabrys and Alexander Vardy}
+\institute{Department of Electrical and Computer Engineering,
+           University of California San Diego}
+\date[05/23]{2022/05/23 NTU GICE Seminar}
+
+\begin{document}
+\makeatletter
+
+\def\linkfil#1{\vbox to#1cm{\hbox{|}\vfil\hbox to3mm{\hfil|}}\vfil}
+\defbeamertemplate*{sidebar left}{thinbold}{
+	\pgfsetfillopacity0
+	\hyperlinkframeendprev{\linkfil1}
+	\hyperlinkslideprev{\linkfil3}
+	\hyperlinkslidenext{\linkfil3}
+	\hyperlinkframestartnext{\linkfil1}
+	\pgfsetfillopacity1\vfilneg\vfilneg
+}
+
+\begin{frame}
+	\maketitle
+
+	\centering
+	To be in ISIT 2022.
+	Slides at \url{http://h-p.wang/ntu}.
+	Preprint at \url{abs/2201.05440}
+\end{frame}
+
+\defbeamertemplate*{sidebar right}{thinbold}{
+	\tikz[remember picture,overlay,x=3mm,y=\paperheight]{\footnotesize
+		\pgfmathsetmacro\overlayfrac{
+			\insertoverlaynumber/(\insertframeendpage+1-\insertframestartpage)}
+		\path[save path=\stare,yscale={1/max(\insertmainframenumber-1,1)}]
+			(0,0)-|(-1,1-\insertframenumber)-|+(\overlayfrac,1)-|cycle;
+		\tikzset{banner/.pic={\node at(-.55,-.5)[rotate=-90]
+			{\beamer@shorttitle~~~~\beamer@shortdate~~~~\beamer@shortauthor};}}
+		\pic[white]{banner};
+		\fill[use path=\stare,black,opacity=.3];
+	}
+}
+
+\begin{frame}\frametitle{動機}
+	大目標是篩檢 Covid
+	\pp
+	抗原、抗體 $=$ 便宜但不準
+	\pp
+	PCR (Polymerase Chain Reaction 聚合酶連鎖反應) $=$ 準但貴 \\
+	而且可以追蹤新變種 (alpha/delta/omicron/...)
+	\pp
+	Group Testing (GT) 可不可以「疊」在現有的篩檢方法上以加快其速度？
+\end{frame}
+
+\begin{frame}\frametitle{大綱}
+	PCR 的原理
+
+	其他人的 Group Testing 方法（如 Quantitative GT 跟 Semi-Quantitative GT）
+
+	我們提出的 Group Testing 方法（叫做 Tropical GT）
+\end{frame}
+
+\begin{frame}\frametitle{PCR 的原理}
+	PCR 機器基本上是一個三溫暖機，有冷、溫、熱三種溫度
+	\pp
+	冷 $=$ Annealing：引子（primer）跟聚合酶（polymerase）會黏到單股 DNA 上 \\
+	溫 $=$ Elongation：聚合酶會從引子開始，把單股 DNA 補完成雙股 DNA \\
+	熱 $=$ Denaturation：一條雙股 DNA 分裂成兩條單股 DNA
+	\pp
+	「冷溫熱」每循環一次，DNA 的數量就 \alert{加倍}\\[-10pt]
+	\tikzset{
+		single/.pic={\draw[scale=.1]foreach\bp in{-9,...,9}{(\bp,0)|-+(1,-2)};},
+		primer/.pic={\draw[scale=.1]foreach\bp in{-9,...,-5}{(\bp,0)|-+(-1,2)}
+			                        foreach\bp in{-9,...,9}{(\bp,0)|-+(1,-2)};},
+		double/.pic={\draw[scale=.1]foreach\bp in{-9,...,9}{(\bp,0)|-+(-1,2)}
+			                        foreach\bp in{-9,...,9}{(\bp,0)|-+(1,-2)};}
+	}
+	\begin{tikzpicture}
+		\draw
+			[shift={(2,0)}] (0,0)pic{single}
+			[shift={(2,0)}] (-.5,0)edge[->](.5,0)
+			[shift={(2,0)}] (0,0)pic{primer}
+			[shift={(2,0)}] (-.5,0)edge[->](.5,0)
+			[shift={(2,0)}] (0,0)pic{double}
+			[shift={(2,0)}] (-.5,0)edge[->](.5,1)        (-.5,0)edge[->](.5,-1)
+			[shift={(2,0)}] (0,1)pic[rotate=180]{single} (0,-1)pic{single}
+		;
+	\end{tikzpicture} \\[-10pt]
+	一旦 DNA 數量高到可以被偵測到就停止
+\end{frame}
+
+\begin{frame}\frametitle{偵測 DNA 的方法與 Ct 值的算法}
+	在試管裡放入「喜歡黏在 DNA 上，且黏上去之後照紫外線會發出螢光」的分子
+	\pp
+	所以每次「溫」跟「熱」之間就照一下紫外線 \\
+	如果偵測到螢光就代表試管裡有病毒的 DNA
+	\pp
+	Ct 值就是偵測到螢光之前「冷溫熱」循環了幾次 \quad
+	\begin{tikzpicture}[overlay, yshift=-1cm]
+		\draw[->] (0,-1) -- (0,4) node[above]{DNA 數量};
+		\draw[->] (-1,0) -- (5,0) node[below]{循環};
+		\draw[dotted] (0,3) -- (5,3) node[right]{亮};
+		\draw
+			foreach \ct in {1,...,5}{
+				plot[domain=0:\ct,samples=\ct*2+1](\ct-\x,4/2^\x)
+			}
+			plot[domain=1:6,samples=6*2+1](6-\x,4/2^\x)
+		;
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{問題}
+
+	\Huge 如何結合 GT 跟 Ct？
+\end{frame}
+
+\begin{frame}\frametitle{複習：Binary Group Testing (GT)}
+	在回答問題之前，先複習一下最傳統的 Binary GT 概念 \\
+	想像篩檢的結果只有 \alert{陰性} 或 \alert{陽性}
+	\pp
+	把五個人的唾液混在一起測一次 \\
+	若陰性，則五個人皆陰性 \\
+	若陽性，則至少有一個人是陽性，但你不知道是誰；故而這五個人要各自測一次
+	\pp
+	相較於每個人測一次 \\
+	五個人測出來陰性的話節省了四次篩檢，陽性的話多花費了一次篩檢 \\
+	如果陰性機率比陽性機率高很多️，就有「賺到」
+	\par
+	起源：[Dorfman 1943]。書：[Du--Hwang 1993]。上課講義：[Ngo--Rudra 2011]。 \\
+	Survey paper：[Aldridge--Johnson--Scarlett 2019]
+\end{frame}
+
+% \begin{frame}\frametitle{複習：Ordered GT}
+% 	篩檢的結果同樣分成陰性或陽性 \\
+% 	但是人會排成一排，每次只能測「第 i 個到第 j 個 \alert{之間的所有人}」
+% 	\pp
+% 	另一種「相反」的問題是，你可以 group 不連續的人，但是有患病的人會相鄰
+% 	\pp
+% 	真正的 context：DNA 很長一條，上面有基因，也有可能沒有，也有可能有好幾份 \\
+% \end{frame}
+
+\begin{frame}\frametitle{複習：Threshold GT}
+	篩檢的結果同樣分成陰性或陽性或 \alert{不確定} \\
+	病人的數量小於 $L$ 時結果為陰性，病人的數量大於 $U$ 時結果為陽性
+	\par
+	[Damaschke 2006] [Dyachkov 2013] [Cheraghchi 2013]
+\end{frame}
+
+\begin{frame}\frametitle{複習：Quantitative GT}
+	你有一個 \alert{精密的電子秤} 跟十袋硬幣，每袋有數千個硬幣 \\
+	真幣每個重 5 g，假幣每個重 4.999 g \\
+	最多有一袋是假幣（是的話，則整袋都是假幣）
+	\pp
+	一個例子： \\
+	從第一袋硬幣裡抓一個，從第二袋硬幣裡抓兩個，依此類推 \\
+	把這 55 個硬幣拿去電子秤上秤 \\
+	秤出來是 275 g 就沒有假幣 \\
+	比 275 g 少的話，少多少 mg 就代表第幾堆是假幣
+	\pp
+	另一個名字是 Coin-Weighing Problem \\{}
+	[Hwang 1987] [Guy--Nowakowski 1995] [Bshouty 2009]
+\end{frame}
+
+\begin{frame}\frametitle{複習：Semi-Quantitative GT}
+	你有一個 \alert{生鏽的彈簧秤}，精確到 0.1 g
+	\pp
+	In general 這就是「刻度比較粗」的 Quantitative GT
+	\par
+	[Emad--Milenkovic 2014] [Cheraghchi--Gabrys--Milenkovic 2021]
+\end{frame}
+
+\begin{frame}\frametitle{複習：Compressed Sensing}
+	意思跟 Semi-Quantitative GT 差不多，看你從哪個科目來 \\
+	跟看你用「零壹矩陣」還是正常的矩陣 \\
+	跟矩陣乘法要不要換成「邏輯矩陣乘法」 $⋁_{j} (A_{ij} ∧ B_{jk})$
+	\pp
+	補充一點是 Compressed Sensing 人可能會喜歡 minimize $|A𝐱 - 𝐲|₂² + λ|𝐱|₁$.
+	\par
+	[Ghosh et al.\ 2021] [Shental et al.\ 2020] [Mutesa et al.\ 2021]。 \\
+	Survey paper：[Aldridge--Ellis 2022]。 \\
+	{\small 台：
+		[10.1109/TNSE.2021.3121709]
+		[10.1155/2021/6636396]
+		[10.1016/j.dam.2020.11.022]
+	}
+	\pp
+	下面講為什麼這些 approaches 不見得適合 PCR
+\end{frame}
+
+\begin{frame}\frametitle{PCR 的精度問題}
+	因為 DNA 可以無限複製，PCR 非常的靈敏，最低可以檢測到 \alert{100 copies/ml}
+	\pp
+	但同時，PCR 的相對精度爛到，如果病毒數量差不到 \alert{兩倍}，Ct 值就有可能一樣！
+\end{frame}
+
+\begin{frame}\frametitle{對數尺度的奧妙}
+	疊加 50dB 跟 30dB 的白噪音，可得 50.043dB 的白噪音
+	
+	混合等體積的 pH 1 跟 pH 3 的鹽酸溶液，等價於 pH 0.9957 稀釋兩倍
+
+	規模 9 的地震跟規模 8 的地震同時同地發生，與規模 9.009 相當
+	
+	視星等 1 的天體跟視星等 6 的天體靠太近，變一顆視星等 0.9892
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{真正的問題}
+
+	\Huge 如何理解對數尺度裡的「相加」？
+\end{frame}
+
+\begin{frame}\frametitle{用 Tropical Arithmetics 熱帶算術！}
+	Tropical Arithmetic 的規則如下： \\
+	domain 是實數跟正無限大： $ℝ ∪ \{∞\}$  \\
+	熱帶加法： $x ⊕ y ≔ \min(x, y)$  \hfill $x ⊕ ∞ = x$ \\
+	熱帶乘法： $x ⊙ y ≔ x + y$  \hfill $x ⊙ ∞ = ∞$
+	\pp
+	叫熱帶是因為巴西的數學家先開始研究的
+	\pp
+	提示：想成對數 \\
+	$2^{-x} + 2^{-y} ≈ 2^{-\min(x, y)}$\\
+	$2^{-x} · 2^{-y} ≈ 2^{-(x + y)}$
+\end{frame}
+
+\begin{frame}\frametitle{熱帶算術 $+$ 矩陣乘法 $=$ 熱帶矩陣乘法}
+	假設 $X₁, …, X_ℓ$, $Y₁, …, Y_m$, $Z₁, …, Z_n$ 是一些地點 \\
+	令 $A_{ij}$ 是從 $X_i$ 到 $Y_j$ 的距離 \\
+	令 $B_{jk}$ 是從 $Y_j$ 到 $Z_k$ 的距離
+	\pp
+	熱帶矩陣乘法：$A ⊙ B$ 是一個矩陣，它的 $(i,k)$ 那格定成 \\
+	$⨁_j (A_{ij}⊙B_{jk}) = \min_j (A_{ij}+B_{jk})$ \\
+	這是從 $X_i$ 經過某個 $Y_?$ 再到 $Z_k$ 的最短距離
+\end{frame}
+
+\begin{frame}\frametitle{公理化「PCR $+$ 池化 Pooling」}
+	假設有 Ct 值分別為 $x₁, x₂, …, x_n$ 的 $n$ 個樣本 \\
+	分別在第 $δ₁, δ₂, …, δ_n$ 個循環之後加入同一個試管裡 \\
+	此試管的 Ct 值應為 $-㏒₂ \Bigl( ∑_j 2^{-δ_j-x_j} \Bigr)$ \hfill (cf.\ softmin)
+	\pp
+	我們 \alert{假裝} 該試管的 Ct 值為
+	$𝛅 ⊙ 𝐱 = ⨁_j (δ_j⊙x_j) = \min_j (δ_j+x_j)$ \\
+	粗體 $𝛅$ 是 $δ_j$ 組成的 row vector，粗體 $𝐱$ 是 $x_j$ 組成的 column vector
+	\pp
+	令 $S$ 是 $T × N$ 矩陣，代表有 $T$ 個試管跟 $N$ 個人，
+	我們叫它 \alert{Schedule 時刻表} \\
+	$S ⊙ 𝐱$ 是很多個 Ct 值的 column vector \\
+	下一頁是最一開始我寫信給 advisor 時用的例子
+\end{frame}
+
+\def\tubepop#1#2,{\xdef\car{#1}\xdef\cdr{#2}}
+\def\eatubepop{\expandafter\tubepop}
+\tikzset{
+	syringe/.pic={
+		\tikzset{scale=1/5,rotate=-30,name prefix/.get=\person}
+		\draw(0,0)--(0,-3)node{\person};
+		\draw(-2,6)-|(-1cm-10*lw,1)(1cm+10*lw,1)|-(2,6);
+		\draw[line width=5*lw](-1,0)rectangle(1,2);
+		\filldraw[PMS3015,line width=3*lw](-1,0)rectangle(1,3);
+		\fill[\person](-1,0)rectangle(1,3);
+		\draw(-1,9)--(1,9)(-1/2,9)|-(-1,3cm+10*lw)--+(2,0)-|(1/2,9);
+		\draw(0,3)node()[transform shape,inner xsep=2cm,inner ysep=6cm]{};
+	},
+	tube/.pic={
+		\begin{scope}[transparency group,scale=1/5,rotate=-30]
+			\draw[.](-1cm-10*lw,1)--+(0,7)(1cm+10*lw,1)--+(0,7);
+			\draw[.,line width=5*lw](-1,2)--(-1,1/2)--(0,-1/2)--(1,1/2)--(1,2)
+				node[right,name prefix/.get=\tube]{\eatubepop\tube,\car};
+			\filldraw[.,PMS3015,line width=3*lw]
+				(-1,3)--(-1,1/2)--(0,-1/2)--(1,1/2)--(1,3);
+			\eatubepop\tubecontentstring{},
+			\ifx\car\pgfutil@empty\else
+				\fill[PMS3015,\car](-1,1)--(-1,1/2)--(0,-1/2)--(1,1/2)|-cycle;
+			\fi
+			\foreach\y in{1,...,7}{
+				\eatubepop\cdr{},
+				\ifx\car\pgfutil@empty\else
+					\fill[PMS3015,\car](-1,\y)rectangle+(2,1);
+				\fi
+			}
+			\draw(0,4)node()[transform shape,inner xsep=2cm,inner ysep=5cm]{};
+		\end{scope}
+	},
+	X/.style={PMS116},
+	Y/.style={PMS7490},
+	Z/.style={PMS144},
+	T/.code={\def\tubecontentstring{#1}},
+}
+
+\begin{frame}
+	\begin{tikzpicture}	
+		\draw(0,4)pic(X){syringe}(0,2)pic(Y){syringe}(0,0)pic(Z){syringe};
+		\draw[uncover=<2->]
+			(5,3)pic(B1)[T=Z]{tube}
+			(5,1)pic(A1)[T=X]{tube}
+			(Z)edge[->,']node[sloped,auto]{add}(B1)
+			(X)edge[->]  node[sloped,auto]{add}(A1)
+		;
+		\draw[uncover=<3->]
+			(9,3)pic(B2)[T=ZZY]{tube}
+			(9,1)pic(A2)[T=XXY]{tube}
+			(Y)edge[->,bend left=30]   node[sloped,auto]{add}(B2)
+			(Y)edge[->,bend right=30,']node[sloped,auto]{add}(A2)
+			(B1)edge[->>]node[auto,']{dup}(B2)
+			(A1)edge[->>]node[auto]  {dup}(A2)
+		;
+		\draw[uncover=<4->]
+			(13,3)pic(B3)[T=ZZZZYYX]{tube}
+			(13,1)pic(A3)[T=XXXXYYZ]{tube}
+			(X)edge[->,bend left=20,']node[sloped,auto]{add}(B3)
+			(Z)edge[->,bend right=20] node[sloped,auto]{add}(A3)
+			(B2)edge[->>]node[auto,']{dup}(B3)
+			(A2)edge[->>]node[auto]  {dup}(A3)
+		;
+	\end{tikzpicture}
+	
+	\[\begin{bmatrix}
+		a \\ b
+	\end{bmatrix}
+	≔
+	\begin{bmatrix}
+		0 & 1 & 2 \\
+		2 & 1 & 0
+	\end{bmatrix}
+	⊙
+	\begin{bmatrix}
+		x \\ y \\ z
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+		\min(\, 0+x\,,\, 1+y\,,\, 2+z \,) \\
+		\min(\, 2+x\,,\, 1+y\,,\, 0+z \,)
+	\end{bmatrix}\]
+\end{frame}
+
+\begin{frame}\frametitle{Decoding 上一頁那個 Schedule}
+	假設只有一個人有病毒
+	\par
+	X 確診 iff $a-b = -2$ \\
+	Y 確診 iff $a-b = 0$ \\
+	Z 確診 iff $a-b = 2$
+	\begin{tikzpicture}[overlay, shift={(4,-1)}]
+		\draw[->] (0,0) -- (0,5) node [left] {$b$};
+		\draw[->] (0,0) -- (5,0) node [right] {$a$};
+		\draw[line width=.7071cm, PMS116, line cap=butt]
+			(0,2) -- node[sloped, black] {X 確診} (3,5)
+			(0,0) -- node[sloped, black] {Y 確診} (4.5,4.5)
+			(2,0) -- node[sloped, black] {Z 確診} (5,3)
+		;
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}\frametitle{小結}
+	這個 work 有兩個觀念上的創新
+	\pp
+	其一是我們用 $x ⊕ y ≔ \min(x, y)$ 來刻畫 Ct 值 $x$ 混合 Ct 值 $y$ 的結果 %\\
+	%數值模擬顯示，這樣做可以大幅簡化 Decoding 的計算量
+	\pp
+	其二是我們引入 $δ ⊙ x ≔ δ + x$（蓄意拖延），來加強 GT %\\
+	%這樣產生很多有趣的組合問題，我們貢獻了一點 partial answers
+	\pp
+	其三是熱帶矩陣乘法剛好同時囊括了這兩個觀念 \\
+	讓「nonadaptive 熱帶 GT」變得很像「熱帶 Compressed Sensing」
+\end{frame}
+
+\begin{frame}\frametitle{從更多人裡找出一位患者}
+	$\begin{bmatrix}
+		a \\ b
+	\end{bmatrix}
+	≔
+	\begin{bmatrix}
+		0 & 1 & 2 \\
+		2 & 1 & 0
+	\end{bmatrix}
+	⊙
+	\begin{bmatrix}
+		x \\ y \\ z
+	\end{bmatrix}$
+	用 \alert{兩管} PCR 找到 \alert{三人} 中的 \alert{一位} 患者，且拖延不超過 \alert{兩圈} \\
+	這樣叫做 $(2†管†, 3†人†, 1†病†)$-tropical code within maximum delay $2$ 圈
+	\pp
+	有更多人來醫院篩檢的話，
+	$\begin{bmatrix}
+		a \\ b
+	\end{bmatrix}
+	≔
+	\begin{bmatrix}
+		0 & 1 & 2 & 3 & 4 & 5 & 6\\
+		6 & 5 & 4 & 3 & 2 & 1 & 0
+	\end{bmatrix}
+	⊙
+	\begin{bmatrix}
+		x₁ \\ x₂ \\ x₃ \\ x₄ \\ x₅ \\x₆ \\ x₇
+	\end{bmatrix}$ \\
+	這樣叫做 $(2†管†, 7†人†, 1†病†)$-tropical code within maximum delay $6$ 圈
+\end{frame}
+
+\begin{frame}\frametitle{兩管一病的 General Case，但是盡量不要拖}
+	$\begin{bmatrix}
+		0 & 0 & 0 & 0 & 1 & 2 & 3 \\
+		3 & 2 & 1 & 0 & 0 & 0 & 0
+	\end{bmatrix}$
+	是 $(2†管†, 7†人†, 1†病†)$-tropical code within maximum delay $3$ 圈
+	\pp
+	$\begin{bmatrix}
+		0 & 0 & 1 & 1 & 2 & 2 & 3 \\
+		3 & 2 & 2 & 1 & 1 & 0 & 0
+	\end{bmatrix}$
+	亦是 $(2†管†, 7†人†, 1†病†)$-tropical code within maximum delay $3$
+	\pp
+	一般式：$(2†管†, 2ℓ+1†人†, 1†病†)$-tropical code within maximum delay $ℓ$ 圈
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{延伸問題}
+
+	\Huge 測三次，但是少一點拖延？
+\end{frame}
+
+\tdplotsetmaincoords{90-23.97565}{120.973882} % Formosa
+\def\camerax{3}\def\cameray{3}\def\cameraz{3}\def\cameras{10}\def\camerad{15}
+\let\oldpointxyz\pgfpointxyz\newdimen\pgf@z
+\def\pgfpointxyz#1#2#3{
+	\oldpointxyz{#1-\camerax}{#2-\cameray}{#3-\cameraz}
+	\pgfmathsetlength\pgf@z{\rcarot*\pgftemp@x%
+	                       +\rcbrot*\pgftemp@y%
+						   +\rccrot*\pgftemp@z}
+	\pgfmathsetlength\pgf@x{\pgf@x*\cameras/(\camerad-\pgf@z)}
+	\pgfmathsetlength\pgf@y{\pgf@y*\cameras/(\camerad-\pgf@z)}
+}
+\def\tikz@install@auto@anchor@tip{\def\tikz@do@auto@anchor{
+	\pgfmathsetmacro\tikz@anchor{atan2(-\pgf@y,-\pgf@x)}}}
+\def\savepoint#1#2#3#4{
+	\pgfmathsetmacro\xx{#1}
+	\pgfmathsetmacro\yy{#2}
+	\pgfmathsetmacro\zz{#3}
+	\pgfpointxyz{\xx}{\yy}{\zz}
+	\xdef#4{\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}
+}
+\def\savepoints#1#2#3#4#5{
+	\savepoint{#1}{#2}{#3}{#4}
+	\pgfpointxyz{\xx+\t}{\yy+\t}{\zz+\t}
+	\xdef#5{\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}
+}
+\def\r{.5}\def\s{.1}
+\def\pencil(#1,#2,#3)+#4 #5;{
+	\pgfmathsetmacro\x{#1}
+	\pgfmathsetmacro\y{#2}
+	\pgfmathsetmacro\z{#3}
+	\def\t{#4}									
+	   \savepoints{\x}{\y-\r}{\z+\r}\Pb\Qb\savepoints{\x-\r}{\y}{\z+\r}\Pa\Qa
+	\savepoints{\x+\r}{\y-\r}{\z}\Pc\Qc      \savepoints{\x-\r}{\y+\r}{\z}\Pf\Qf
+	   \savepoints{\x+\r}{\y}{\z-\r}\Pd\Qd\savepoints{\x}{\y+\r}{\z-\r}\Pe\Qe
+	\begin{pgfonlayer}{background}
+		\pgfpathmoveto\Pa\pgfpathlineto\Pb\pgfpathlineto\Pc
+		\pgfpathlineto\Pd\pgfpathlineto\Pe\pgfpathlineto\Pf\pgfclosepath
+		\pgfusepath{fill,stroke}
+	\end{pgfonlayer}		
+	   \pgfpathmoveto\Pb\pgfpathlineto\Qb\pgfpathmoveto\Pa\pgfpathlineto\Qa
+	\pgfpathmoveto\Pc\pgfpathlineto\Qc      \pgfpathmoveto\Pf\pgfpathlineto\Qf
+	   \pgfpathmoveto\Pd\pgfpathlineto\Qd\pgfpathmoveto\Pe\pgfpathlineto\Qe
+	\pgfusepath{stroke}
+	\pgfpathmoveto\Qa\pgfpathlineto\Qb\pgfpathlineto\Qc
+	\pgfpathlineto\Qd\pgfpathlineto\Qe\pgfpathlineto\Qf\pgfclosepath
+	\pgfusepath{fill,stroke}
+	\pgfpointdiff{\pgfpointxyz{\x+\t+.35355}{\y+\t-.35355}{\z+\t}}
+	             {\pgfpointxyz{\x+\t-.35355}{\y+\t+.35355}{\z+\t}}
+	\xdef\ux{\the\pgf@x}\xdef\uy{\the\pgf@y}
+	\pgfpointdiff{\pgfpointxyz{\x+\t+.20412}{\y+\t+.20412}{\z+\t-.40825}}
+	             {\pgfpointxyz{\x+\t-.20412}{\y+\t-.20412}{\z+\t+.40825}}
+	\xdef\vx{\the\pgf@x}\xdef\vy{\the\pgf@y}
+	\pgflowlevelobj{
+		\pgftransformcm{\ux/28.4527}{\uy/28.4527}
+	                   {\vx/28.4527}{\vy/28.4527}
+	           {\pgfpointxyz{\x+\t}{\y+\t}{\z+\t}}
+	}{
+		\draw(0,0)node[black]{#5};
+	}
+}
+\def\pencilframe#1#2{
+	\tdplotsetmaincoords{#1}{#2}
+	\begin{tikzpicture}[tdplot_main_coords,overlay]
+		\begin{pgfonlayer}{background}
+			\draw[nodes={pos=1,auto=tip}]
+				(0,0,0)edge[->]node{$a$}(6,0,0)
+				(0,0,0)edge[->]node{$b$}(0,6,0)
+				(0,0,0)edge[->]node{$c$}(0,0,6)
+			;
+			\pgfsetfillcolor{PMS116}\pgfsetstrokecolor{PMS1245}
+		\end{pgfonlayer}
+		\pgfsetfillcolor{PMS116}\pgfsetstrokecolor{PMS1245}
+							\pencil(0,0,3)+3 {V};
+			\pencil(3,0,3)+3 {W};			\pencil(0,3,3)+3 {U};
+							\pencil(0,0,0)+6 {T};
+			\pencil(3,0,0)+3 {X};			\pencil(0,3,0)+3 {Z};
+							\pencil(3,3,0)+3 {Y};
+		\begin{pgfonlayer}{background}
+			\draw[white]
+				(0,0,0)edge(1,0,0)edge(0,1,0)edge(0,0,1)
+				(0,0,3)--(0,0,4)(0,3,0)--(0,4,0)(3,0,0)--(4,0,0)
+			;
+		\end{pgfonlayer}
+	\end{tikzpicture}
+}
+\setbeamertemplate{sidebar right}{}
+
+\begin{frame}
+	\only<1>{
+		\hfill
+		\pencilframe{90-23.97565}{120.973882-5}
+		\hfill\hfill
+		\pencilframe{90-23.97565}{120.973882}
+		\hfill
+		\hbox{}
+	}\only<2>{
+		\hfill
+		\pencilframe{90-23.97565}{120.973882}
+		\hfill\hfill
+		\pencilframe{90-23.97565}{120.973882+5}
+		\hfill
+		\hbox{}
+	}
+	\vfilneg
+\end{frame}
+
+\setbeamertemplate{sidebar right}[thinbold]
+
+\begin{frame}\centering
+	\huge\alert{更重要的問題}
+
+	\Huge 要是有兩個或更多患者呢？
+\end{frame}
+
+\begin{frame}\frametitle{要 Minimize 哪個 Metric？}
+	Minimize 把樣本滴來滴去的 pipetting work
+	\par
+	Maximize 平均每管 PCR 可以篩檢的人數
+	\par
+	Minimize 拖延的時間
+\end{frame}
+
+\begin{frame}\frametitle{Minimize 滴管使用量}
+	小推理：若 Xavier 只參與一個試管，那 Yvonne 就不能參與該管 \\
+	（否則 Yvonne 比較多病毒的話就會「蓋掉」Xavier）
+	\pp
+	如果不想要退化成 individual testing 的話，每個人都至少參與兩個試管
+	\pp
+	先統一設定為兩個 \\
+	可以用 graph theory 裡的 graph 來描述誰參與了哪兩個試管 \\
+	試管 $=$ vertex，人 $=$ edge
+	\pp
+	每個人要決定要拖延多久才把樣本放進試管裡 \\
+	delay 多久其實不重要，重要的是兩個試管的 delays 差多少
+	\pp
+	發明一個單字：\alert{diff-lay} \\
+	每個人把自己的 diff-lay 寫在 graph 的 edge 上
+\end{frame}
+
+\begin{frame}\centering
+	\begin{tikzpicture}[scale=2]
+		\draw
+						(2,2) node(A){A} (4,2) node(B){B}
+			(0,1) node(E){E}
+						(2,0) node(D){D} (4,0) node(C){C}
+		;
+		\draw[nodes=auto]
+			(D) edge[->] node{1} (A)
+			(A) edge[->] node{4} (B)
+			(B) edge[->] node{1} (C)
+			(C) edge[->] node{5} (D)
+			(D) edge[->] node{9} (E)
+			(E) edge[->] node{2} (A)
+		;
+	\end{tikzpicture}	
+\end{frame}
+
+\begin{frame}\centering
+	\begin{tikzpicture}[scale=2]
+		\draw
+						(2,2) node(A)[PMS144]{$11$} (4,2) node(B)[PMS144]{$16$}
+			(0,1) node(E){$∞$}
+						(2,0) node(D)[PMS144]{$10$} (4,0) node(C){$∞$}
+		;
+		\draw[nodes=auto]
+			(D) edge[->, alt=<2>{PMS144}{}] node{1} (A)
+			(A) edge[->, alt=<2>{PMS144}{}] node{4} (B)
+			(B) edge[->] node{1} (C)
+			(C) edge[->] node{5} (D)
+			(D) edge[->] node{9} (E)
+			(E) edge[->] node{2} (A)
+		;
+	\end{tikzpicture}	
+\end{frame}
+
+\begin{frame}\centering
+	\begin{tikzpicture}[scale=2]
+		\draw
+						(2,2) node(A)[PMS144]{$11$} (4,2) node(B){$∞$}
+			(0,1) node(E)[PMS144]{$30$}
+						(2,0) node(D)[PMS144]{$10$} (4,0) node(C){$∞$}
+		;
+		\draw[nodes=auto]
+			(D) edge[->, alt=<2>{PMS144}{}] node{1} (A)
+			(A) edge[->] node{4} (B)
+			(B) edge[->] node{1} (C)
+			(C) edge[->] node{5} (D)
+			(D) edge[->, alt=<2>{PMS7490}{}] node{9} (E)
+			(E) edge[->, alt=<2>{PMS7490}{}] node{2} (A)
+		;
+	\end{tikzpicture}	
+\end{frame}
+
+\begin{frame}{從剛剛的例子我們學到}
+	三角形不好
+	\pp
+	四邊形有條件好，條件是： \\
+	沿著四個 edges 把 diff-lays 加起來之後要非零（逆向要加負號）
+\end{frame}
+
+\begin{frame}\centering
+	\begin{tikzpicture}[scale=2]
+		\draw[PMS144]
+						(2,2) node(A){$1+w$} (4,2) node(B){$y$}
+			(0,1) node(E)[white]{$∞$}
+						(2,0) node(D){$w$} (4,0) node(C){$1+y$}
+		;
+		\draw[nodes=auto]
+			(D) edge[->, PMS144] node{1} (A)
+			(A) edge[->] node{4} (B)
+			(B) edge[->, PMS144] node{1} (C)
+			(C) edge[->] node{5} (D)
+			(D) edge[->] node{9} (E)
+			(E) edge[->] node{2} (A)
+		;
+	\end{tikzpicture}
+
+	$a - b + c - d = (1+w) - y + (1+y) - w = 2$
+\end{frame}
+
+\begin{frame}\centering
+	\begin{tikzpicture}[scale=2]
+		\draw [PMS144]
+						(2,2) node(A){$x$} (4,2) node(B){$4+x$}
+			(0,1) node(E)[white]{$∞$}
+						(2,0) node(D){$5+z$} (4,0) node(C){$z$}
+		;
+		\draw[nodes=auto]
+			(D) edge[->] node{1} (A)
+			(A) edge[->, PMS144] node{4} (B)
+			(B) edge[->] node{1} (C)
+			(C) edge[->, PMS144] node{5} (D)
+			(D) edge[->] node{9} (E)
+			(E) edge[->] node{2} (A)
+		;
+	\end{tikzpicture}
+	
+	$a - b + c - d = x - (4+x) + z - (5+y) = -9$
+\end{frame}
+
+\begin{frame}\frametitle{每個人參與兩個試管的 Design Principle}
+	不能有三角形，但是四邊形可以，而且 edges 要盡量多 ➡️ 二部圖 bipartite graph
+	\pp
+	每個人要決定自己的 diff-lay，使得每個四邊形的「順向和」 $≠ 0$ \\
+	➡️ 用 mod-$p$ 乘法表 當作 bi-adjacency matrix，$p$ 是質數 \\
+	➡️ 從「左邊第 $i$ 個試管」連到「右邊第 $j$ 個試管」這條邊的 diff-lay 是 $ij \bmod p$ \\
+	\hfill $p$ 是質數
+	\pp
+	➡️ $(2p†管†, p²†人†, 2†病†)$-tropical code within maximum delay $(p-1)/2$ 圈
+\end{frame}
+
+\begin{frame}\frametitle{要 Minimize 哪個 Metric？}
+	Minimize 把樣本滴來滴去的 pipetting work \alert{️⬅ 這個講完了}
+
+	Maximize 平均每管 PCR 可以篩檢的人數 \alert{⬅️ 換這個}
+
+	Minimize 拖延的時間
+\end{frame}
+
+\begin{frame}\frametitle{Maximize 平均每管 PCR 可以篩檢的人數}
+	令 $X$ 為 the subset of tubes Xavier is in \\
+	令 $Y$ 為 the subset of tubes Yvonne is in
+	\pp
+	若 $|X ∖ Y| = 0$，代表 Yvonne 病得很重的話會「蓋住」Xavier \\
+	若 $|X ∖ Y| = 1$ 且 Yvonne 病重，我們只剩一個試管可以「看到」Xavier
+	\pp
+	基於上開理由，希望至少要 $|X ∖ Y| ≥ 2$
+\end{frame}
+
+\begin{frame}\frametitle{每個人都比另一個人「多兩管」}
+	我們需要 a family of subsets of $\{1, …, T\}$ 滿足這個條件： \\
+	$|X ∖ Y| ≥ 2$ 對任兩個 family 裡的 subsets $X, Y$
+	\pp
+	取所有大小是 $⌊T/2⌋$ 的 subsets，但是限制 $∑_{a∈X} a ≡ 0 \pmod T$.
+	\pp
+	令 $x ∈ \{1, …, N\}$ 是 Xavier 的編號 \\
+	$X$ 是 Xavier 參與的試管的 subset，再令 $a ∈ X$ 是一個試管編號
+	\pp
+	「Xavier 把他樣本放進試管 $a$ 裡」after 拖延 $ax \bmod N$ 圈，$N$ 是質數
+\end{frame}
+
+\begin{frame}\frametitle{要 Minimize 哪個 Metric？}
+	Minimize 把樣本滴來滴去的 pipetting work \alert{️⬅ 這個講完了}，bipartite graph
+
+	Maximize 平均每管 PCR 可以篩檢的人數 \alert{️⬅ 這也個講完了}
+
+	Minimize 拖延的時間 \alert{⬅️ 換這個}
+\end{frame}
+
+\begin{frame}\frametitle{用現成的構造「張量積」出新構造}
+	令 $S$ 是一個 $(t†管†, n†人†, 2†病†)$-tropical code
+	\pp
+	考慮
+	$\begin{bmatrix}
+		S ⊗ †全一矩陣†_{1×n} \\
+		†全一矩陣†_{1×n} ⊗ S
+	\end{bmatrix}$
+	$\begin{array}{l}
+		†⬅ ️把連續 $n$ 個人當作一組，用 $S$ 測這 $n$ 組† \\
+		†⬅️ 把模 $n$ 同餘的人當作一組，用 $S$ 測這 $n$ 組†
+	\end{array}$
+	\pp
+	假設 $y_{10}n+y₁$ 跟 $z_{10}n+z₁$ 染疫、Ct 值分別是 $y_*$ 跟 $z_*$ \\
+	那我們會知道 $\{(y_{10}, y_*), (z_{10}, z_*)\}$
+	跟 $\{(y₁, y_*), (z₁, z_*)\}$
+\end{frame}
+
+\begin{frame}\frametitle{用 Systematic Reed--Solomon 生成 Checksum}
+	我們知道 $\{(y_{10}, y_*), (z_{10}, z_*)\}$ \\
+	如果兩個病人 Ct 值一樣會出包 \\
+	➡️ 用 systemic Reed--Solomon code 生成 checksum 做最後檢查：
+	\pp
+	$$\begin{bmatrix}
+		S ⊗ †全一矩陣†_{1×n} \\
+		†全一矩陣†_{1×n} ⊗ S \\
+		†one row of checksums†
+	\end{bmatrix}$$
+	第 $in + j$ column 的 checksum $k$ 滿足：
+	$(i, j, k)$ is a codeword of $[3, 2, 2]$-RS
+\end{frame}
+
+\begin{frame}\frametitle{結論（倒數第二張，快講完了）}
+	這個 work 有兩個觀念上的創新
+	\pp
+	數值模擬顯示，\alert{假裝} $x ⊕ y ≔ \min(x, y)$ 可以大幅簡化 decoding
+	\pp
+	蓄意拖延，意即 $δ ⊙ x ≔ δ + x$，製造了很多有趣的組合設計問題 \\
+	我們用到二部圖、區塊設計、有限體乘法、張量積、里德--索羅門碼等工具
+\end{frame}
+
+\begin{frame}\frametitle{展望（可以問問題了）}
+	把 decoding 包裝成 convex optimization（化為 LASSO？）
+
+	病人數 $≥ 3$ 知道得很少
+
+	Asymptotic behavior 都猶未了解
+
+	Noisy measurement
+
+	To be in ISIT 2022.
+	Slides at \url{http://h-p.wang/ntu}.
+	Preprint at \url{abs/2201.05440}
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{闌尾}
+
+	\Huge Appendix
+\end{frame}
+
+\fontsize{11pt}{11pt}\selectfont
+\newcount\accumulatenumplots
+\pgfplotsset{
+	every axis/.style={cycle list shift=\the\accumulatenumplots},
+	cycle multiindex* list={
+		PMS116,PMS7490,PMS1245,PMS3115,PMS144\nextlist
+		mark=o,mark size=1.5\\mark=+\\mark=triangle\\mark=*,mark size=1\\mark=x\\
+		every mark/.append style={yscale=-1},mark size=2,mark=triangle*\\\nextlist
+	},
+	legend image code/.code={
+		\draw[mark repeat=2,mark phase=2,#1]plot coordinates{
+			(-4pt,-6pt)(0pt,2pt)(8pt,6pt)
+		};
+	},
+	RoC/.style={
+		yticklabel=\pgfmathprintnumber\tick\%,
+		xticklabel=\pgfmathprintnumber\tick\%,
+		xticklabel style={rotate=90},
+		xlabel=false positive rate ($1-{}$specificity),
+		ylabel=true positive rate (sensitivity),
+		xlabel near ticks,ylabel near ticks,
+		legend pos=south east,
+		legend style={draw=white,fill=PMS3015}
+	}
+}
+
+\pgfplotstableread{
+   5fp   5sen   6fp   6sen   7fp   7sen   8fp   8sen   9fp   9sen   10fp  10sen
+   0.463 99.323 0.805 98.907 1.273 98.394 1.873 97.793 2.627 97.088 3.531 96.314
+   0.463 99.323 0.805 98.907 1.273 98.394 1.873 97.793 2.627 97.088 3.531 96.314
+   0.464 99.325 0.808 98.91  1.278 98.4   1.879 97.801 2.636 97.099 3.545 96.329
+   0.471 99.331 0.82  98.924 1.296 98.42  1.905 97.83  2.673 97.139 3.591 96.38 
+   0.485 99.347 0.842 98.95  1.335 98.455 1.959 97.885 2.745 97.213 3.685 96.478
+   0.51  99.367 0.883 98.989 1.397 98.513 2.048 97.97  2.865 97.33  3.843 96.637
+   0.545 99.399 0.943 99.043 1.49  98.592 2.177 98.087 3.043 97.488 4.074 96.839
+   0.596 99.443 1.027 99.109 1.611 98.695 2.351 98.228 3.277 97.686 4.376 97.102
+   0.66  99.491 1.137 99.193 1.768 98.814 2.571 98.401 3.57  97.908 4.759 97.405
+   0.741 99.545 1.269 99.286 1.967 98.955 2.839 98.594 3.924 98.167 5.214 97.737
+   0.843 99.604 1.431 99.385 2.192 99.102 3.155 98.798 4.347 98.438 5.746 98.084
+   0.961 99.668 1.619 99.488 2.46  99.263 3.518 99.003 4.824 98.719 6.344 98.444
+   1.105 99.746 1.828 99.596 2.762 99.421 3.941 99.221 5.362 99.006 7.011 98.793
+   1.256 99.821 2.069 99.703 3.11  99.575 4.406 99.435 5.955 99.286 7.747 99.131
+   1.432 99.879 2.332 99.81  3.495 99.725 4.911 99.644 6.602 99.548 8.522 99.447
+   1.634 99.944 2.635 99.899 3.922 99.865 5.474 99.821 7.307 99.784 9.365 99.728
+   1.855 100    2.983 100    4.391 100    6.09  100    8.08  100   10.291 100   
+}\tablepreval
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=5fp,y=5sen]{\tablepreval};\addlegendentry{$p=5\%$}
+			\addplot table[x=6fp,y=6sen]{\tablepreval};\addlegendentry{$p=6\%$}
+			\addplot table[x=7fp,y=7sen]{\tablepreval};\addlegendentry{$p=7\%$}
+			\addplot table[x=8fp,y=8sen]{\tablepreval};\addlegendentry{$p=8\%$}
+			\addplot table[x=9fp,y=9sen]{\tablepreval};\addlegendentry{$p=9\%$}
+			\addplot table[x=10fp,y=10sen]{\tablepreval};\addlegendentry{$p=10\%$}
+		\end{axis}
+		\global\advance\accumulatenumplots6
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume uniform Ct values on the interval $[16,32]$, $15×35$ Kirkman triple
+	system, and no delay ($ℓ=0$).  We vary the prevalence rate $p$ and plot the
+	ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	8fp    8sen    12fp   12sen   16fp   16sen   20fp   20sen   24fp   24sen
+	3.291  96.837  3.391  96.608  3.538  96.338  3.745  95.816  4.111  94.889
+	3.291  96.837  3.391  96.608  3.538  96.338  3.745  95.816  4.111  94.892
+	3.295  96.841  3.398  96.616  3.55   96.354  3.774  95.856  4.204  95.04 
+	3.311  96.855  3.422  96.643  3.597  96.404  3.876  95.979  4.513  95.462
+	3.344  96.89   3.475  96.695  3.694  96.502  4.086  96.208  5.093  96.161
+	3.396  96.941  3.564  96.776  3.854  96.66   4.418  96.54   5.972  97.082
+	3.478  97.017  3.691  96.894  4.084  96.866  4.884  96.96   7.128  98.093
+	3.584  97.11   3.865  97.048  4.387  97.122  5.482  97.454  8.557  99.071
+	3.727  97.231  4.086  97.225  4.767  97.413  6.21   97.991 10.275 100.   
+	3.899  97.364  4.357  97.437  5.223  97.737  7.062  98.547    nan     nan
+	4.105  97.516  4.684  97.667  5.755  98.089  8.022  99.078    nan     nan
+	4.344  97.685  5.057  97.914  6.35   98.442  9.089  99.547    nan     nan
+	4.616  97.869  5.477  98.172  7.016  98.804 10.282 100.       nan     nan
+	4.926  98.066  5.936  98.437  7.749  99.146    nan     nan    nan     nan
+	5.265  98.268  6.447  98.706  8.54   99.474    nan     nan    nan     nan
+	5.644  98.48   6.992  98.966  9.382  99.74     nan     nan    nan     nan
+	6.055  98.682  7.578  99.211 10.299 100.       nan     nan    nan     nan
+	6.491  98.884  8.197  99.439    nan     nan    nan     nan    nan     nan
+	6.963  99.084  8.852  99.641    nan     nan    nan     nan    nan     nan
+	7.457  99.273  9.544  99.836    nan     nan    nan     nan    nan     nan
+	7.976  99.452 10.281 100.       nan     nan    nan     nan    nan     nan
+	8.516  99.612    nan     nan    nan     nan    nan     nan    nan     nan
+	9.081  99.753    nan     nan    nan     nan    nan     nan    nan     nan
+	9.663  99.882    nan     nan    nan     nan    nan     nan    nan     nan
+	10.283 100       nan     nan    nan     nan    nan     nan    nan     nan
+}\tablerange
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=8fp,y=8sen]{\tablerange};\addlegendentry{$[8,32]$}
+			\addplot table[x=12fp,y=12sen]{\tablerange};\addlegendentry{$[12,32]$}
+			\addplot table[x=16fp,y=16sen]{\tablerange};\addlegendentry{$[16,32]$}
+			\addplot table[x=20fp,y=20sen]{\tablerange};\addlegendentry{$[20,32]$}
+			\addplot table[x=24fp,y=24sen]{\tablerange};\addlegendentry{$[24,32]$}
+		\end{axis}
+		\global\advance\accumulatenumplots5
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p = 10\%$, uniform Ct values, $15×35$ Kirkman triple
+	system, and no delay ($ℓ = 0$).  We vary the range of the Ct values and plot
+	the ROC curves.  Surprisingly, larger interval (consequently larger
+	variance) is easier to decode.
+\end{frame}
+
+\pgfplotstableread{
+	8fp    8sen    6fp    6sen    4fp    4sen    2fp    2sen    0fp    0sen
+	1.988  97.433  2.326  97.014  2.725  96.596  3.139  96.2    3.549  96.339
+	2.023  97.471  2.346  97.039  2.734  96.608  3.142  96.203  3.549  96.339
+	2.083  97.535  2.388  97.085  2.763  96.639  3.156  96.221  3.563  96.355
+	2.175  97.63   2.458  97.157  2.814  96.692  3.203  96.278  3.611  96.409
+	2.303  97.744  2.562  97.259  2.895  96.773  3.3    96.379  3.709  96.508
+	2.466  97.884  2.701  97.38   3.057  96.927  3.462  96.549  3.871  96.659
+	2.664  98.047  2.873  97.532  3.287  97.134  3.693  96.774  4.104  96.87 
+	2.902  98.229  3.18   97.771  3.592  97.385  4.003  97.058  4.409  97.124
+	3.18   98.421  3.568  98.049  3.979  97.68   4.389  97.389  4.785  97.42 
+	3.559  98.644  4.027  98.357  4.444  98.023  4.854  97.755  5.247  97.758
+	3.987  98.87   4.574  98.682  4.983  98.386  5.391  98.139  5.773  98.098
+	4.465  99.092  5.077  98.928  5.599  98.75   5.998  98.535  6.368  98.459
+	4.989  99.308  5.621  99.155  6.29   99.113  6.676  98.926  7.036  98.814
+	5.547  99.513  6.207  99.396  6.884  99.374  7.409  99.277  7.771  99.152
+	6.147  99.696  6.823  99.619  7.509  99.613  8.205  99.605  8.554  99.468
+	6.792  99.854  7.472  99.821  8.175  99.818  8.857  99.816  9.392  99.741
+	7.474 100.     8.16  100.     8.86  100.     9.544 100.    10.306 100.   
+}\tablelimit
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=8fp,y=8sen]{\tablelimit};\addlegendentry{$ℓ=8$}
+			\addplot table[x=6fp,y=6sen]{\tablelimit};\addlegendentry{$ℓ=6$}
+			\addplot table[x=4fp,y=4sen]{\tablelimit};\addlegendentry{$ℓ=4$}
+			\addplot table[x=2fp,y=2sen]{\tablelimit};\addlegendentry{$ℓ=2$}
+			\addplot table[x=0fp,y=0sen]{\tablelimit};\addlegendentry{$ℓ=0$}
+		\end{axis}
+		\global\advance\accumulatenumplots5
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p=10\%$, uniform Ct values on the interval
+	$[16,32]$, $15×35$ Kirkman triple system, and $ℓ·†Bernoulli†(1/2)$
+	delay.  We vary the limit of delay $ℓ$ and plot the ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	Bfp    Bsen     Ufp    Usen     0fp    0sen
+	1.99   97.42    2.4    96.751   3.543  96.327
+	2.023  97.456   2.415  96.768   3.543  96.327
+	2.082  97.519   2.446  96.803   3.556  96.342
+	2.173  97.607   2.504  96.864   3.605  96.395
+	2.298  97.718   2.601  96.967   3.704  96.496
+	2.457  97.854   2.754  97.109   3.861  96.654
+	2.659  98.017   2.974  97.3     4.093  96.866
+	2.897  98.196   3.272  97.552   4.394  97.122
+	3.172  98.386   3.653  97.843   4.772  97.425
+	3.555  98.615   4.117  98.178   5.225  97.758
+	3.985  98.846   4.646  98.52    5.756  98.116
+	4.46   99.068   5.233  98.858   6.356  98.466
+	4.977  99.284   5.848  99.173   7.026  98.823
+	5.542  99.495   6.479  99.45    7.755  99.162
+	6.15   99.682   7.095  99.685   8.527  99.471
+	6.793  99.851   7.679  99.863   9.365  99.75 
+	7.472 100.      8.193 100.     10.286 100.   
+}\tabledistri
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=Bfp,y=Bsen]{\tabledistri};\addlegendentry{Bernoulli}
+			\addplot table[x=Ufp,y=Usen]{\tabledistri};\addlegendentry{uniform}
+			\addplot table[x=0fp,y=0sen]{\tablelimit};\addlegendentry{no delay}
+		\end{axis}
+		\global\advance\accumulatenumplots3
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p=10\%$, uniform Ct values on the interval
+	$[16,32]$, $15×35$ Kirkman triple system, and $ℓ=8$.  We vary the
+	distribution of the random delay $δ$ and plot the ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	405fp  405sen   105fp  105sen   45fp   45sen    15fp   15sen
+	2.588  96.606   2.602  96.61    2.787  96.555   3.534  96.319
+	2.588  96.606   2.602  96.61    2.787  96.555   3.534  96.319
+	2.601  96.618   2.616  96.622   2.8    96.567   3.547  96.333
+	2.652  96.661   2.667  96.666   2.851  96.613   3.595  96.386
+	2.759  96.747   2.774  96.75    2.955  96.7     3.695  96.484
+	2.935  96.881   2.949  96.885   3.128  96.838   3.854  96.64 
+	3.19   97.066   3.204  97.066   3.377  97.026   4.082  96.844
+	3.53   97.3     3.544  97.295   3.713  97.261   4.385  97.107
+	3.955  97.571   3.973  97.565   4.128  97.537   4.766  97.405
+	4.471  97.879   4.49   97.87    4.634  97.839   5.227  97.738
+	5.072  98.201   5.091  98.197   5.228  98.177   5.755  98.093
+	5.76   98.537   5.776  98.531   5.892  98.515   6.354  98.447
+	6.521  98.871   6.533  98.869   6.631  98.857   7.019  98.811
+	7.356  99.192   7.368  99.192   7.44   99.181   7.747  99.141
+	8.258  99.487   8.269  99.491   8.324  99.487   8.536  99.463
+	9.23   99.751   9.237  99.754   9.27   99.746   9.372  99.74 
+	10.284 100     10.288 100.     10.296 100.     10.292 100.   
+}\tablekirkman
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=405fp,y=405sen]{\tablekirkman};\addlegendentry{$405×735$}
+			\addplot table[x=105fp,y=105sen]{\tablekirkman};\addlegendentry{$105×315$}
+			\addplot table[x=45fp,y=45sen]{\tablekirkman};\addlegendentry{$45×105$}
+			\addplot table[x=15fp,y=15sen]{\tablekirkman};\addlegendentry{$15×35$}
+		\end{axis}
+		\global\advance\accumulatenumplots4
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p = 10\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider Kirkman triple systems of different size
+	(after truncation so that the code rate $N/T = 7/3$ is fixed) and plot the
+	ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	T0fp    T0sen T1fp   T1sen  T2fp   T2sen  T3fp   T3sen  T4fp   T4sen  T5fp   T5sen  T6fp   T6sen  T7fp   T7sen  T8fp   T8sen  T9fp   T9sen
+	1.826  97.984 1.809  97.96  1.823  98.022 1.871  98.007 1.837  97.99  1.857  98.007 1.842  98.054 1.852  98.005 1.866  98.008 1.851  97.983
+	1.826  97.984 1.809  97.96  1.823  98.022 1.871  98.007 1.837  97.99  1.857  98.007 1.842  98.054 1.852  98.005 1.866  98.008 1.851  97.983
+	1.834  97.99  1.816  97.965 1.833  98.031 1.882  98.011 1.846  97.996 1.869  98.014 1.851  98.056 1.861  98.01  1.875  98.012 1.861  97.989
+	1.869  98.004 1.855  97.985 1.867  98.055 1.917  98.033 1.881  98.02  1.904  98.044 1.888  98.067 1.893  98.031 1.909  98.036 1.898  98.008
+	1.951  98.04  1.925  98.034 1.949  98.097 1.999  98.082 1.957  98.061 1.978  98.087 1.957  98.122 1.963  98.076 1.979  98.082 1.972  98.058
+	2.074  98.116 2.057  98.108 2.08   98.168 2.131  98.146 2.084  98.12  2.114  98.145 2.089  98.185 2.093  98.128 2.112  98.158 2.103  98.128
+	2.27   98.209 2.238  98.206 2.269  98.269 2.313  98.236 2.273  98.226 2.295  98.245 2.276  98.272 2.273  98.224 2.3    98.257 2.288  98.22 
+	2.535  98.357 2.498  98.352 2.528  98.405 2.562  98.369 2.528  98.347 2.545  98.353 2.523  98.397 2.541  98.351 2.559  98.39  2.548  98.348
+	2.857  98.494 2.823  98.521 2.865  98.551 2.894  98.533 2.848  98.509 2.888  98.51  2.86   98.554 2.874  98.507 2.889  98.518 2.878  98.493
+	3.284  98.661 3.241  98.704 3.265  98.703 3.305  98.693 3.257  98.67  3.293  98.689 3.282  98.736 3.276  98.683 3.301  98.687 3.286  98.684
+	3.761  98.875 3.737  98.906 3.737  98.897 3.785  98.865 3.734  98.85  3.773  98.879 3.767  98.933 3.761  98.873 3.779  98.834 3.776  98.868
+	4.31   99.074 4.304  99.097 4.316  99.08  4.343  99.051 4.293  99.052 4.34   99.067 4.318  99.142 4.338  99.072 4.344  99.046 4.357  99.067
+	4.964  99.283 4.916  99.3   4.962  99.273 4.98   99.284 4.94   99.235 4.978  99.267 4.98   99.322 4.967  99.263 4.981  99.248 4.992  99.241
+	5.674  99.489 5.647  99.493 5.683  99.487 5.709  99.473 5.668  99.425 5.706  99.459 5.687  99.489 5.714  99.483 5.689  99.445 5.712  99.412
+	6.481  99.671 6.432  99.702 6.473  99.658 6.525  99.649 6.454  99.607 6.492  99.645 6.482  99.657 6.534  99.66  6.457  99.648 6.513  99.617
+	7.353  99.832 7.331  99.867 7.358  99.831 7.356  99.833 7.363  99.791 7.365  99.82  7.369  99.825 7.432  99.845 7.324  99.811 7.388  99.816
+	8.331 100.    8.267 100.    8.347 100.    8.297 100.    8.33  100.    8.307 100.    8.315 100.    8.389 100.    8.281 100.    8.339 100.   
+}\tabletapestry
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC,every axis plot/.append style={line width=.1}]
+			\draw(4.5,99.3)circle(.8pt)
+				node[above left,align=right]{Tapestry \\ \& std devi}
+				(4.5+2.41,99.3)--(4.5-2.41,99.3)
+				(4.5,100)coordinate(T+y)(4.5,99.3-2.55)coordinate(T-y)
+				(5,99)circle(.8pt)node[below right]{$(5\%,99\%)$};
+			\addplot table[x=T0fp,y=T0sen]{\tabletapestry};
+			\addplot table[x=T1fp,y=T1sen]{\tabletapestry};
+			\addplot table[x=T2fp,y=T2sen]{\tabletapestry};
+			\addplot table[x=T3fp,y=T3sen]{\tabletapestry};
+			\addplot table[x=T4fp,y=T4sen]{\tabletapestry};
+			\addplot table[x=T5fp,y=T5sen]{\tabletapestry};
+			\addplot table[x=T6fp,y=T6sen]{\tabletapestry};
+			\addplot table[x=T7fp,y=T7sen]{\tabletapestry};
+			\addplot table[x=T8fp,y=T8sen]{\tabletapestry};
+			\addplot table[x=T9fp,y=T9sen]{\tabletapestry};
+		\end{axis}
+		\draw(T+y)--(T-y);
+		\global\advance\accumulatenumplots10
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume $D = 10$ patients within $N = 105$ persons (infection rate $9.52\%$),
+	uniform Ct values on $[16,32]$, $45×105$ Kirkman triple system (truncation
+	of a $45×330$ Kirkman triple system), and no delay ($ℓ = 0$).  We plot $10$
+	ROC curves.  Each curve is $10{,}000$ encoding--decodings, i.e., $450{,}000$
+	tubes, $100{,}000$ patients, and $1{,}050{,}000$ test takers.  Compare this
+	to Tapestry's data point and its standard deviations $(4.50\% ± 2.41\%,
+	99.30\% ± 2.55\%)$ (Table S.XII of the preprint version
+	[Ghosh et al.\ 2020]).
+\end{frame}
+
+\pgfplotstableread{
+	97fp   97sen    49fp   49sen    17fp   17sen    Pfp    Psen
+	0.892  96.809   1.015  96.099   1.862  94.293   2.9    96.004
+	0.892  96.809   1.015  96.099   1.862  94.303   2.9    96.004
+	0.893  96.809   1.022  96.108   1.922  94.424   2.901  96.005
+	0.899  96.815   1.045  96.141   2.037  94.625   2.907  96.013
+	0.916  96.832   1.095  96.204   2.203  94.906   2.927  96.037
+	0.953  96.869   1.179  96.31    2.416  95.242   2.972  96.091
+	1.018  96.934   1.301  96.462   2.671  95.626   3.056  96.191
+	1.12   97.037   1.469  96.661   2.963  96.066   3.193  96.347
+	1.268  97.179   1.682  96.92    3.297  96.515   3.395  96.565
+	1.468  97.378   1.944  97.211   3.659  96.973   3.672  96.852
+	1.727  97.629   2.254  97.55    4.047  97.436   4.039  97.206
+	2.047  97.936   2.619  97.937   4.463  97.907   4.501  97.631
+	2.436  98.294   3.025  98.338   4.9    98.355   5.065  98.096
+	2.891  98.69    3.482  98.76    5.362  98.806   5.721  98.588
+	3.414  99.12    3.988  99.176   5.834  99.233   6.482  99.093
+	4.008  99.557   4.536  99.596   6.327  99.626   7.334  99.561
+	4.69  100.      5.135 100.      6.837 100.      8.296 100.   
+}\tabelpbest
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=97fp,y=97sen]{\tabelpbest};\addlegendentry{$(2,4,97)$-S}
+			\addplot table[x=49fp,y=49sen]{\tabelpbest};\addlegendentry{$(2,3,49)$-S}
+			\addplot table[x=17fp,y=17sen]{\tabelpbest};\addlegendentry{$K_{17}$}
+			\addplot table[x=Pfp,y=Psen]{\tabelpbest};\addlegendentry{P-Best}
+		\end{axis}
+		\global\advance\accumulatenumplots4
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p = 2\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider $(2,4,97)$-Steiner system (aka $2$-$(97,4,1)$
+	design), $(2,3,49)$-Steiner system (aka $2$-$(49,3,1)$ design), complete
+	graph on $17$ vertices, and P-BEST [Shental].  They all have code rate $N/T
+	= 8$.  We plot their ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	183fp  183sen   15fp   15sen    61fp   61sen
+	0.65   91.622   3.018  96.277   1.182  86.561
+	0.65   91.622   3.019  96.287   1.182  86.583
+	0.656  91.633   3.052  96.356   1.244  86.87 
+	0.679  91.679   3.12   96.477   1.365  87.367
+	0.727  91.784   3.227  96.664   1.54   88.01 
+	0.81   91.995   3.37   96.865   1.766  88.772
+	0.931  92.29    3.552  97.125   2.039  89.643
+	1.095  92.696   3.775  97.407   2.351  90.582
+	1.304  93.19    4.028  97.709   2.709  91.595
+	1.564  93.803   4.326  98.038   3.092  92.62 
+	1.875  94.507   4.657  98.358   3.508  93.683
+	2.234  95.298   5.015  98.689   3.946  94.744
+	2.643  96.161   5.405  98.98    4.42   95.845
+	3.099  97.062   5.822  99.282   4.921  96.933
+	3.611  98.033   6.272  99.567   5.441  98.   
+	4.169  99.029   6.744  99.792   5.982  99.028
+	4.775 100.      7.236 100.      6.546 100.   
+}\tablehyper
+\begin{frame}[t]
+	\leftskip11cm\vspace*{1cm}\hspace{-11cm}
+	\begin{tikzpicture}
+		\begin{axis}[RoC]
+			\addplot table[x=183fp,y=183sen]{\tablehyper};\addlegendentry{$(2,3,183)$-S}
+			\addplot table[x=15fp,y=15sen]{\tablehyper};\addlegendentry{$K^{(3)}_{15}$}
+			\addplot table[x=61fp,y=61sen]{\tablehyper};\addlegendentry{$K_{61}$}
+		\end{axis}
+		\global\advance\accumulatenumplots3
+	\end{tikzpicture}
+	\vskip-10cm plus1fil
+	\par
+	Assume prevalence rate $p = 0.5\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider Kirkman triple system on $183$ vertices,
+	complete $3$-uniform hypergraph on $15$ vertices, and complete graph on $61$
+	vertices.  The first two have code rate $N/T = 30+1/3$; the last one has
+	code rate $N/T = 30$.  We plot their ROC curves.
+\end{frame}
+
+\end{document}
