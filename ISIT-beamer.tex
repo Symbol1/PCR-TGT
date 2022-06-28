@@ -78,15 +78,19 @@
 \begin{document}
 \makeatletter
 
-% \def\linkfil#1{\vbox to#1cm{\hbox{|}\vfil\hbox to3mm{\hfil|}}\vfil}
-% \defbeamertemplate*{sidebar left}{thinbold}{
-% 	\pgfsetfillopacity0
-% 	\hyperlinkframeendprev{\linkfil1}
-% 	\hyperlinkslideprev{\linkfil3}
-% 	\hyperlinkslidenext{\linkfil3}
-% 	\hyperlinkframestartnext{\linkfil1}
-% 	\pgfsetfillopacity1\vfilneg\vfilneg
-% }
+\def\linkfil#1{\vbox to#1cm{\hbox{|}\vfil\hbox to3mm{\hfil|}}}
+\defbeamertemplate*{sidebar left}{thinbold}{
+	\pgfsetfillopacity0
+	\hyperlinkframeendprev{\linkfil1}
+	\vfil
+	\hyperlinkslideprev{\linkfil3}
+	\vfil
+	\hyperlinkslidenext{\linkfil3}
+	\vfil
+	\hyperlinkframestartnext{\linkfil1}
+	\vfilneg
+	\pgfsetfillopacity1
+}
 
 \begin{frame}
 	\maketitle
@@ -176,7 +180,7 @@
 \end{frame}
 
 \begin{frame}\frametitle{How to Detect DNA and What's Ct Value?}
-	\begin{tikzpicture}[overlay, shift={(10,-5.2)}]
+	\begin{tikzpicture}[overlay, shift={(10,-5)}]
 		\draw [->] (0,-1) -- (0,4) node[left]{DNA\only<2->{/brightness}};
 		\draw [->] (-1,0) -- (4,0) node[below]{cycle};
 		\draw foreach \ct in {1,...,4}{
@@ -191,7 +195,8 @@
 	Insert fluorescent dyes that like to attach to DNA. \\
 	As the amount of DNA increases, the tube glows.
 	\pp
-	\alert{Ct value} is \#cycles before we see the tube glowing.
+	\alert{Ct} (cycle threshold) \alert{value} is \\
+	\#cycles before we see the tube glowing.
 \end{frame}
 
 \begin{frame}\centering
@@ -216,8 +221,8 @@
 	If the mixture is positive, at least one is infected.
 	\par
 	Origin = [Dorfman 1943].  Book = [Du--Hwang 1993].
-	Lecture note: [Ngo--Rudra 2011].
-	Survey paper: [Aldridge--Johnson--Scarlett 2019].
+	Lecture note: [Ngo--Rudra 2011]. \\
+	Recent survey: [Aldridge--Johnson--Scarlett 2019].
 \end{frame}
 
 \begin{frame}\frametitle{Review: Threshold GT}
@@ -256,7 +261,7 @@
 		\path (12,-2) node {\includegraphics[width=6cm]{scan2.jpg}};
 	\end{tikzpicture}
 	Very similar to semi-quantitative GT. \\
-	Want to solve $y = Ax + †errors†$.
+	Want to solve $𝐲 = A𝐱 + †errors†$.
 	\par
 	Some meta choices: \\
 	$A$ is zero-one matrix or with real numbers? \\
@@ -284,9 +289,9 @@
 			plot [domain=0:4, samples=5+1] (\x, {2^(\x+2-5)})
 		;
 		\draw [dotted] (0,3) -- (4,3) node[above, fill=PMS3015]{threshold};
-		\draw [PMS116, only=<2->]
+		\draw [PMS116, line width=2*lw, only=<2->]
 			plot [domain=0:2.1, samples=2+1] (\x, {2^(\x+2-2.1)});
-		\draw [PMS144, only=<2->]
+		\draw [PMS144, line width=2*lw, only=<2->]
 			plot [domain=0:2.9, samples=3+1] (\x, {2^(\x+2-2.9)});
 	\end{tikzpicture}
 	DNA can double many many times. \\
@@ -297,9 +302,9 @@
 	may have the same Ct value.
 \end{frame}
 
-\begin{frame}\frametitle{The ``Problem'' with Logarithmic Scale}
+\begin{frame}\frametitle{And the ``Problem'' with Logarithmic Scale}
 	\raisebox{-12pt}{\fontsize{36pt}{0pt}\emoji{loudspeaker}}
-	White noises of 50dB and 30dB combined = 50.043dB.
+	White noises of 50 dB and 30 dB combined = 50.043 dB.
 	\par
 	\hfill
 	Mixing pH 1 and pH 3 acids = diluting pH 0.9957 by two-fold.
@@ -329,16 +334,16 @@
 	Tropical multiplication $x ⊙ y ≔ x + y$.
 	\par
 	Hint: It's all about logarithm. \\
-	$2^{-x} + 2^{-y} ≈ 2^{-\min(x, y)}$ (given that $|x-y|$ is not so small) \\
+	$2^{-x} + 2^{-y} ≈ 2^{-\min(x, y)}$, especially when $|x-y|$ is big \\
 	$2^{-x} · 2^{-y} = 2^{-(x + y)}$
 \end{frame}
 
-\begin{frame}\frametitle{Tropical Arithmetics and Matrix Multiplication}
+\begin{frame}\frametitle{Extend Tropical Arithmetics to Matrix Multiplication}
 	Let $A ⊙ B$ be a matrix whose $(i,k)$th entry is let to be
 	$⨁_j (A_{ij}⊙B_{jk}) = \min_j (A_{ij}+B_{jk})$.
 	\pp
-	Combinatorial meaning:
-	Suppose $X₁, …, X_ℓ$, $Y₁, …, Y_m$, $Z₁, …, Z_n$ are points on a map. \\
+	Combinatorial meaning: \\
+	Suppose $X₁, …, X_ℓ$, $Y₁, …, Y_m$, $Z₁, …, Z_n$ are points on Google map. \\
 	Let the distance from $X_i$ to $Y_j$ be $A_{ij}$.   
 	Let the distance from $Y_j$ to $Z_k$ be $B_{jk}$. \\
 	$(A⊙B) _ {ik}$ is the distance from $X_i$ to $Z_k$
@@ -363,13 +368,13 @@
 	\pp
 	This quantity is close to, and we \alert{pretend} that it is exactly,
 	\[ \bma{0&0&⋯&0} ⊙ \bma{x₁\\x₂\\⋮\\x_N}
-		= ⨁_{j=1}^N x_j = \min_{1≤j≤N}^N x_j. \]
+		= ⨁_{j=1}^N x_j = \min_{1≤j≤N} x_j. \]
 \end{frame}
 
-\begin{frame}\frametitle{Axiomize PCR and Pooling and Delay}
-	Suppose there are $n$ samples with Ct values $x₁, x₂, …, x_n$. \\
+\begin{frame}\frametitle{Axiomize PCR and Pooling ... and Delay!}
+	Suppose there are $n$ samples with Ct values $x₁, x₂, …, x_N$. \\
 	Suppose we insert them into the PCR machine
-	after $δ₁, δ₂, …, δ_n$ cycles, respectively. \\
+	after $δ₁, δ₂, …, δ_N$ cycles, respectively. \\
 	The final Ct value should be $-㏒₂ \Bigl( ∑_{j=1}^N 2^{-δ_j-x_j} \Bigr)$.
 	\pp
 	This is close to, and we \alert{pretend} that it's exactly,
@@ -380,7 +385,7 @@
 \begin{frame}\frametitle{Problem Statement}
 	A \alert{$(T,N,D)$-tropical code} is a matrix
 	$S ∈ (ℤ∪\{∞\}) ^ {T×N}$ such that, \\
-	for any two vectors $𝐱,𝐲 ∈ (ℤ∪\{∞\}) ^ N$,
+	for any two column vectors $𝐱,𝐲 ∈ (ℤ∪\{∞\}) ^ {N×1}$,
 	each with at most $D$ finite entries, \\
 	$$ S⊙𝐱 ≠ S⊙𝐲. $$
 	\pp
@@ -513,15 +518,14 @@
 \begin{frame}\frametitle{Main Results on Nonadaptive Tropical GT}
 	When there is $D = 1$ infected person in a population of size $N$, \\
 	and the delay is limited to $ℓ$ cycles,
-	we have a construction with $N ≈ Tℓ^{T-1}$.
+	we will use$ T ≈ ㏒_{ℓ+1}(N)$ tests.
 	\par
 	When there are $D = 2$ infected persons in a population of size $N$: \\
 	\begin{itemize}
 		\item The first construction uses $T ≈ 2√N$ tests.  \\
 		In this construction, every person is present in only two tests.
-		\item The second construction limits the delay
-		to $ℓ ≈ ㏒₂(N) / ㏒₂(㏒₂N)$ cycles \\
-		and uses $T ≈ 1.01 ㏒₂N$ tests.
+		\item The second construction uses $T ≈ 1.01 ㏒₂N$ tests \\
+		and limits the delay to $ℓ ≈ 3㏒₂(N)$ cycles. \\
 		This outperforms the IT bound of binary GT.
 	\end{itemize}
 	\par
@@ -533,12 +537,13 @@
 	When adaptive testing is allowed, $T = 4$ tests are sufficient to find \\
 	$D = 2$ infected persons among arbitrarily many persons.
 	\par
-	In general, $T = 3D+1$ adaptive tests are sufficient \\
+	In general, $T = 3D+1$ tests are sufficient \\
 	to locate $D$ infected persons among arbitrarily many persons. \\
 	For this construction, one does not need to know $D$ beforehand.
 	\par
-	When delays are limited to $ℓ$ cycles, we show
-	that $T ≈ 4D㏒_ℓN$ tests suffice.
+	When delays are limited to $ℓ$ cycles,
+	we show that $T ≈ 4D㏒_ℓ(N)$ tests suffice. \\
+	For this construction, one does not need to know $D$ beforehand.
 \end{frame}
 
 \begin{frame}\frametitle{Summary of Novelty}
@@ -557,8 +562,6 @@
 \end{frame}
 
 \begin{frame}\frametitle{Future Works \\ Open to Questions}
-	• To what extend does compressed sensing apply to tropical case?
-	\par
 	• Random coding approach? Asymptotics?
 	\par
 	• Noisy/erroneous measurements?
@@ -965,11 +968,11 @@
 \end{frame}
 
 \pgfplotstableread{
-	Regime             Reading                           Remixing            
-	Binary             {Negative, Positive}              $†Neg†∨†Pos†=†Pos†$ 
-	Tropical           $2^{-∞},2^{-40},\dotsc,2^{-12}$   $\min(30,15)=15$    
-	Semiquantitative   $[0,3),[3,6),[6,9),\dotsc$        $[0,3)+[3,6)=[3,9)$ 
-	Quantitative       $0,1,2,3,4,5,\dotsc$              $8+9=17$            
+	Regime             Reading                       Remixing            
+	Binary             {Negative, Positive}          $†Neg†∨†Pos†=†Pos†$ 
+	Tropical           $2^{-∞},…,2^{-40},…,2^{-0}$   $\min(30,15)=15$    
+	Semiquantitative   $[0,3),[3,6),[6,9),…$         $[0,3)+[3,6)=[3,9)$ 
+	Quantitative       $0,1,2,3,4,5,…$               $8+9=17$            
 }\tablequant
 \begin{frame}\centering
 	Four ways to quantify and combine test outputs.  Binary tests output
@@ -982,6 +985,33 @@
 		every head row/.style={before row=\toprule,after row=\midrule},
 		every last row/.style={after row=\bottomrule},string type,
 	]\tablequant
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{Appendix}
+	\par
+	\Huge Compressed Main Results
+\end{frame}
+
+\pgfplotstableread{
+	Rounds        tests          people    patients   {max delay}
+	$1$           $㏒_{ℓ+1}(N)$   $N$       $1$        $ℓ$
+	$1$           $2√N$           $N$       $2$        $√N$
+	$1$           $㏒₂(N)$        $N$       $2$        $3㏒₂(N)$
+	$2$           $4$             $N$       $2$        $∞$
+	$3D+1$        $3D+1$          $N$       $D$        $N$
+	$4D㏒_ℓ(N)$   $4D㏒_ℓ(N)$      $N$       $D$        $ℓ$
+}\tableresult
+\begin{frame}\centering
+	Main results of this work.  Round-$1$ testing schemes are non-adaptive.  The
+	row with $2√N$ tests is special in that every person participates in only
+	two tests.
+	\par
+	\def\arraystretch{2}
+	\pgfplotstabletypeset[
+		every head row/.style={before row=\toprule,after row=\midrule},
+		every last row/.style={after row=\bottomrule},string type,
+	]\tableresult
 \end{frame}
 
 \end{document}
