@@ -1,0 +1,987 @@
+% !TEX encoding = UTF-8 Unicode
+% !TEX program = lualatex
+% !TEX spellcheck = English
+% !TEX pdfSinglePage
+
+
+
+\catcode`激13 \def激#1{\lccode`~`#1\lowercase{\catcode`#113\def~}}
+
+\documentclass[12pt,aspectratio=169]{beamer}
+	\beamertemplatenavigationsymbolsempty
+	\setbeamercovered{transparent}
+	\setbeamersize{text margin left=3mm,text margin right=3mm}
+	\overfullrule1em
+	\def\pp{\pause\par}
+	\advance\parskip\fill
+	\def\BCMH{\gdef\beamer@currentmode{handout}}
+	\def\BCMB{\gdef\beamer@currentmode{beamer}}
+	激色#1♯#2 {\definecolor{#1}{HTML}{#2}}
+	色PMS2767♯182B49   色PMS3015♯00629B   色PMS1245♯C69214   色PMS116♯FFCD00     
+	色PMS3115♯00C6D7   色PMS7490♯6E963B   色PMS3945♯F3E500   色PMS144♯FC8900     
+	色Black♯000000     色CoolGray9♯747678 色PMS401♯B6B1A9    色Metallic871♯84754E
+	\setbeamercolor{normal text}{bg=PMS3015,fg=white}
+	\setbeamercolor{structure}{fg=PMS116}
+	\setbeamercolor{alerted text}{fg=PMS144}
+	\setbeamercolor{example text}{fg=PMS7490}
+
+\usepackage{xurl}
+	\hypersetup{pdfsubject=q-bio.QM; 15A78}
+
+\usepackage{mathtools,unicode-math,emoji}
+	\setmainfont{SourceSansPro-Light}
+	\setsansfont{SourceSansPro-Light}
+	\setmonofont{SourceSansPro-Light}
+	\setemojifont{Apple Color Emoji}
+	\setmathfont[sans-style=literal]{texgyrepagella-math.otf}
+	激㏒{\log} 激㏑{\ln} 激√{\sqrt} 激÷{\frac} 激†#1†{\text{#1}}
+	\def\bma#1{\begin{bmatrix}#1\end{bmatrix}}
+
+\usepackage{tikz,tikz-cd}
+	\usetikzlibrary{backgrounds}
+	% https://tex.stackexchange.com/q/420034/
+	\pgfmathdeclarefunction*{axis_height}0{\begingroup\pgfmathreturn.25em\endgroup}
+	\pgfmathdeclarefunction*{rule_thickness}0{\begingroup\pgfmathreturn.06em\endgroup}
+	\pgfmathdeclarefunction*{lw}0{\begingroup\pgfmathreturn.06em\endgroup}
+	\tikzset{
+		every picture/.style={cap=round, join=round, line width=rule_thickness},
+		% https://tex.stackexchange.com/q/146908/
+		alt/.code args={<#1>#2#3}{\alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}}},
+		uncover/.style={alt=#1{}{opacity=.15}},only/.style={alt=#1{}{opacity=0}}
+	}
+
+\usepackage{pgfplotstable,booktabs,colortbl}
+	\pgfplotsset{
+		compat/show suggested version=false,compat=1.17,
+		width=10cm, height=7.5cm
+	}
+
+\title{PCR, Tropical Arithmetic, and Group Testing}
+\author[Wang--Gabrys--Vardy]{Hsin-Po Wang \texorpdfstring\\{}
+                             with Ryan Gabrys and Alexander Vardy}
+\institute{Department of Electrical and Computer Engineering,
+           University of California San Diego}
+%\date{ISIT ~ 2022-06-28 ~ Espoo}
+\date{}
+\titlegraphic{
+	\vskip-1cm
+	\begin{tikzpicture} [nodes={align=center}]
+		\path (-3.5,0)
+			node [above] {\includegraphics[height=2cm]{bear2.jpg}}
+			node [below] {Slides\\\url{https://h-p.wang/isit}};
+		\path (3.5,0)
+			node [above] {\includegraphics[width=2cm]{library2.jpg}}
+			node [below] {Preprint\\arXiv: 2201.05440}	;
+	\end{tikzpicture}
+}
+
+\begin{document}
+\makeatletter
+
+% \def\linkfil#1{\vbox to#1cm{\hbox{|}\vfil\hbox to3mm{\hfil|}}\vfil}
+% \defbeamertemplate*{sidebar left}{thinbold}{
+% 	\pgfsetfillopacity0
+% 	\hyperlinkframeendprev{\linkfil1}
+% 	\hyperlinkslideprev{\linkfil3}
+% 	\hyperlinkslidenext{\linkfil3}
+% 	\hyperlinkframestartnext{\linkfil1}
+% 	\pgfsetfillopacity1\vfilneg\vfilneg
+% }
+
+\begin{frame}
+	\maketitle
+\end{frame}
+
+\defbeamertemplate*{sidebar right}{thinbold}{
+	\begin{tikzpicture} [overlay, x=3mm, y=\paperheight]
+		\scriptsize
+		\pgfmathsetmacro\overlayfrac{
+			\insertoverlaynumber/(\insertframeendpage+1-\insertframestartpage)}
+		\path[save path=\stare, yscale={1/max(\insertmainframenumber-1,1)}]
+			(0,0) -| (-1,1-\insertframenumber) -| +(\overlayfrac,1) -| cycle;
+		\tikzset{short/.pic={\node at (-.55,-.5) [rotate=-90]
+			{\beamer@shorttitle\kern2em\beamer@shortauthor};}}
+		\pic [white] {short};
+		\fill [use path=\stare, black, opacity=.15];
+	\end{tikzpicture}
+}
+
+\begin{frame}\frametitle{Motivation of This Work}
+	\begin{tikzpicture} [overlay]
+		\path (12,-2) node {\includegraphics[width=6cm]{nose2.jpg}};
+	\end{tikzpicture}
+	Overall goal is to screen many people for covid \\
+	(or for the next pandemic).
+	\pp
+	Antigen testing and antibody testing: \\
+	Cheap and fast; but not too sensitive.
+	\pp
+	\alert{PCR} (polymerase chain reaction) testing: \\
+	Sensitive but expensive and slow; \\
+	keep track of variants (alpha, delta, omicron, etc).
+	\pp
+	\centering
+	Q: How to combine PCR testing and \alert{Group Testing} (GT)?
+\end{frame}
+
+\begin{frame}\frametitle{Outline of This Talk}
+	The working principle of PCR testing.
+	\par
+	Variants of group testing (GT).
+	\par
+	Our GT, called tropical GT.
+\end{frame}
+
+\begin{frame}\frametitle{Working Principle of PCR}
+	\begin{tikzpicture} [overlay]
+		\path
+			(11.5,0) node (X) {\includegraphics[width=3.5cm]{sauna.jpg}}
+			(X.east) node [rotate=90, below, align=center, font=\tiny]
+			{https://www.craiyon.com/ \\ prompt: test tubes in sauna}
+		;
+	\end{tikzpicture}
+	A PCR machine is a sauna room for test tubes, \\
+	with three settings: cold, warm, and hot. \\
+	~
+	\par
+	\uncover<2->{Cold = a {\color{PMS116}primer} and
+	a {\color{PMS144}polymerase} stick to a single-stranded DNA.} \\
+	\uncover<3->{Warm =
+	the polymerase synthesizes the complement strand of the DNA.} \\
+	\uncover<4->{Hot =
+	a double-stranded DNA splits into two single-stranded DNAs.} \\
+	\tikzset{
+		single/.pic={
+			\draw [scale=.1] foreach \bp in {-9,...,9} {(\bp,.2) |- +(1,-2)};
+		},
+		primer/.pic={
+			\draw [scale=.1,PMS116] foreach \bp in {-9,...,-5} {(\bp,.2) |- +(-1,2)};
+			\draw [scale=.1] foreach \bp in {-9,...,9} {(\bp,-.2) |- +(1,-2)};
+			\draw [scale=.1,PMS144](-3,2)circle(2)node{P};
+		},
+		double/.pic={
+			\draw [scale=.1] foreach \bp in {-9,...,9} {(\bp,.2) |- +(-1,2)}
+			                 foreach \bp in {-9,...,9} {(\bp,-.2) |- +(1,-2)};
+		}
+	}
+	\begin{tikzpicture}
+		\draw [uncover=<2->] (0,0) pic {single};
+		\draw [uncover=<2->] (2-.5,0) edge[->] +(1,0);
+		\draw [uncover=<2->] (4,0) pic {primer};
+		\draw [uncover=<3->] (6-.5,0) edge[->] +(1,0);
+		\draw [uncover=<3->] (8,0) pic {double};
+		\draw [uncover=<4->] (10-.5,0) edge[->] +(1,1) edge[->] +(1,-1);
+		\draw [uncover=<4->] (12,1) pic[rotate=180]{single} (12,-1) pic{single};
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}\frametitle{How to Detect DNA and What's Ct Value?}
+	\begin{tikzpicture}[overlay, shift={(10,-5.2)}]
+		\draw [->] (0,-1) -- (0,4) node[left]{DNA\only<2->{/brightness}};
+		\draw [->] (-1,0) -- (4,0) node[below]{cycle};
+		\draw foreach \ct in {1,...,4}{
+			plot [domain=0:\ct, samples=\ct+1] (\x, {2^(\x+2-\ct)}) }
+			plot [domain=0:4, samples=5+1] (\x, {2^(\x+2-5)})
+		;
+		\draw[dotted, only=<3->] (0,3) -- (4,3)
+			node[above, fill=PMS3015]{threshold};
+	\end{tikzpicture}
+	The amount of DNA \alert{doubles} every cold-warm-hot cycle.
+	\pp
+	Insert fluorescent dyes that like to attach to DNA. \\
+	As the amount of DNA increases, the tube glows.
+	\pp
+	\alert{Ct value} is \#cycles before we see the tube glowing.
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{So...}
+	\par
+	\Huge Can GT Make Good Use of Ct Values?
+\end{frame}
+
+\begin{frame}\frametitle{Review: Binary GT}
+	In binary GT, a test result is either \alert{negative} or \alert{positive}.
+	\par
+	\begin{tikzpicture} [overlay, shift={(12,-1)}, rotate=-30]
+		\draw (-.7,4) -- (-.7,0) arc [start angle=-180, end angle=0, radius=.7]
+			-- (.7,4);
+		\foreach \i in {0,...,4}{
+			\draw [line width=lw*3] ({(\i-2)/5},{(-1)^\i/4}) -- +(0,.5);
+			\draw ({(\i-2)/5},{(-1)^\i/4}) -- +(0,5);
+		}
+	\end{tikzpicture}
+	Mix samples of five people. \\
+	If the mixture is negative, all five people are healthy. \\
+	If the mixture is positive, at least one is infected.
+	\par
+	Origin = [Dorfman 1943].  Book = [Du--Hwang 1993].
+	Lecture note: [Ngo--Rudra 2011].
+	Survey paper: [Aldridge--Johnson--Scarlett 2019].
+\end{frame}
+
+\begin{frame}\frametitle{Review: Threshold GT}
+	If less than $L$ people are infected, the mixture is negative. \\
+	If more then $U$ people are infected, the mixture is positive. \\
+	\alert{Inconclusive} if between $L$ and $U$.
+	\par
+	Binary GT: $(L,U) = (0,1)$.
+	\par	
+	[Damaschke 2006] [Dyachkov 2013] [Cheraghchi 2013]
+\end{frame}
+
+\begin{frame}\frametitle{Review: Quantitative GT}
+	\begin{tikzpicture} [overlay]
+		\path (12,-3) node {\includegraphics[width=6cm]{weigh2.jpg}};
+	\end{tikzpicture}
+	You have ten bags of coins, each containing many coins.
+	Each coin weighs 5 grams. \\
+	One bag contains fake coins; each fake coin weighs 4.5 grams. \\
+	Task: Use a \alert{spring scale} to find the fake bag.
+	\par
+	Another name = coin-weighing problem. \\{}
+	[Hwang 1987] [Guy--Nowakowski 1995] [Bshouty 2009]
+\end{frame}
+
+\begin{frame}\frametitle{Review: Semi-Quantitative GT}
+	The spring scale is \alert{rusty}, accurate up to 1 gram.
+	\par
+	This version is basically a combination of quantitative GT and threshold GT.
+	\par
+	[Emad--Milenkovic 2014] [Cheraghchi--Gabrys--Milenkovic 2021]
+\end{frame}
+
+\begin{frame}\frametitle{Review: Compressed Sensing}
+	\begin{tikzpicture} [overlay]
+		\path (12,-2) node {\includegraphics[width=6cm]{scan2.jpg}};
+	\end{tikzpicture}
+	Very similar to semi-quantitative GT. \\
+	Want to solve $y = Ax + †errors†$.
+	\par
+	Some meta choices: \\
+	$A$ is zero-one matrix or with real numbers? \\
+	Usual matrix multiplication $(A·B)_{ik} ≔ ∑_j (A_{ij}·B_{jk})$ \\
+	or logical version $(A∧B)_{ik} ≔ ⋁_j (A_{ij} ∧ B_{jk})$? \\
+	Minimize $|A𝐱 - 𝐲|₂² + λ|𝐱|₁$ or other metric?
+	\par
+	Recent works: [Ghosh et al.\ 2021]
+	[Shental et al.\ 2020] [Mutesa et al.\ 2021] \\
+	Survey: [Aldridge--Ellis 2022] 
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{But...}
+	\par
+	\Huge Ct Values Do Not Fit.
+\end{frame}
+
+\begin{frame}\frametitle{PCR Precision Issue}
+	\begin{tikzpicture}[overlay, shift={(10,-3)}]
+		\draw [->] (0,-1) -- (0,4) node[left]{brightness};
+		\draw [->] (-1,0) -- (4,0) node[below]{cycle};
+		\draw foreach \ct in {1,...,4}{
+			plot [domain=0:\ct, samples=\ct+1] (\x, {2^(\x+2-\ct)}) }
+			plot [domain=0:4, samples=5+1] (\x, {2^(\x+2-5)})
+		;
+		\draw [dotted] (0,3) -- (4,3) node[above, fill=PMS3015]{threshold};
+		\draw [PMS116, only=<2->]
+			plot [domain=0:2.1, samples=2+1] (\x, {2^(\x+2-2.1)});
+		\draw [PMS144, only=<2->]
+			plot [domain=0:2.9, samples=3+1] (\x, {2^(\x+2-2.9)});
+	\end{tikzpicture}
+	DNA can double many many times. \\
+	PCR is as sensitive as 100 copies/milliliter.
+	\pp
+	On the other hand, {\color{PMS144}$x$} copies/ml
+	and {\color{PMS116}$1.9x$} copies/ml \\
+	may have the same Ct value.
+\end{frame}
+
+\begin{frame}\frametitle{The ``Problem'' with Logarithmic Scale}
+	\raisebox{-12pt}{\fontsize{36pt}{0pt}\emoji{loudspeaker}}
+	White noises of 50dB and 30dB combined = 50.043dB.
+	\par
+	\hfill
+	Mixing pH 1 and pH 3 acids = diluting pH 0.9957 by two-fold.
+	\raisebox{-12pt}{\fontsize{36pt}{0pt}\emoji{alembic}}
+	\par
+	\raisebox{-12pt}{\fontsize{36pt}{0pt}\emoji{volcano}}
+	Magnitude 9 and magnitude 8 earthquakes together = 9.009.
+	\par
+	\hfill
+	Star with apparent magnitude 1 close to star with 6 = looks like 0.9892.
+	\raisebox{-12pt}{\fontsize{36pt}{0pt}\emoji{milky-way}}
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{Actual Question is..}
+	\par
+	\Huge How to ``Add'' under Logarithmic Scale?
+\end{frame}
+
+\begin{frame}\frametitle{Use Tropical Arithmetics!}
+	\begin{tikzpicture} [overlay]
+		\path (12,-1) node {\includegraphics[width=6cm]{tropical2.jpg}};
+	\end{tikzpicture}
+	Rules are as follows: \\
+	The domain is real numbers and infinity $ℝ ∪ \{∞\}$. \\
+	Tropical addition: $x ⊕ y ≔ \min(x, y)$. \\
+	Tropical multiplication $x ⊙ y ≔ x + y$.
+	\par
+	Hint: It's all about logarithm. \\
+	$2^{-x} + 2^{-y} ≈ 2^{-\min(x, y)}$ (given that $|x-y|$ is not so small) \\
+	$2^{-x} · 2^{-y} = 2^{-(x + y)}$
+\end{frame}
+
+\begin{frame}\frametitle{Tropical Arithmetics and Matrix Multiplication}
+	Let $A ⊙ B$ be a matrix whose $(i,k)$th entry is let to be
+	$⨁_j (A_{ij}⊙B_{jk}) = \min_j (A_{ij}+B_{jk})$.
+	\pp
+	Combinatorial meaning:
+	Suppose $X₁, …, X_ℓ$, $Y₁, …, Y_m$, $Z₁, …, Z_n$ are points on a map. \\
+	Let the distance from $X_i$ to $Y_j$ be $A_{ij}$.   
+	Let the distance from $Y_j$ to $Z_k$ be $B_{jk}$. \\
+	$(A⊙B) _ {ik}$ is the distance from $X_i$ to $Z_k$
+	via the best choice of $Y_j$. \\
+	\centering
+	\begin{tikzpicture}
+		\draw [yscale=2/3, dotted]
+			(0,2.5) node (X) {$X_i$}
+			foreach \y in {1,...,5} { (3,\y) node(Y\y){$Y_\y$} }
+			(6,2) node (Z) {$Z_k$}
+			foreach \y in {1,...,5} { (X) -- (Y\y) -- (Z)}
+		;
+		\path (X) --node[above]{$A_{i5}$} (Y5) --node[above]{$B_{5k}$} (Z);
+		\draw (X) -- (Y2) -- (Z);
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}\frametitle{Axiomize PCR and Pooling}
+	Suppose there are $n$ samples with Ct values $x₁, x₂, …, x_N$. \\
+	The Ct value of the mixture should be
+	$-㏒₂ \Bigl( ∑_{j=1}^N 2^{-x_j} \Bigr)$.
+	\pp
+	This quantity is close to, and we \alert{pretend} that it is exactly,
+	\[ \bma{0&0&⋯&0} ⊙ \bma{x₁\\x₂\\⋮\\x_N}
+		= ⨁_{j=1}^N x_j = \min_{1≤j≤N}^N x_j. \]
+\end{frame}
+
+\begin{frame}\frametitle{Axiomize PCR and Pooling and Delay}
+	Suppose there are $n$ samples with Ct values $x₁, x₂, …, x_n$. \\
+	Suppose we insert them into the PCR machine
+	after $δ₁, δ₂, …, δ_n$ cycles, respectively. \\
+	The final Ct value should be $-㏒₂ \Bigl( ∑_{j=1}^N 2^{-δ_j-x_j} \Bigr)$.
+	\pp
+	This is close to, and we \alert{pretend} that it's exactly,
+	\[ \bma{δ₁&δ₂&⋯&δ_N} ⊙ \bma{x₁\\x₂\\⋮\\x_N}
+		= ⨁_{j=1}^N (δ_j⊙x_j) = \min_{1≤j≤N} (δ_j+x_j). \]
+\end{frame}
+
+\begin{frame}\frametitle{Problem Statement}
+	A \alert{$(T,N,D)$-tropical code} is a matrix
+	$S ∈ (ℤ∪\{∞\}) ^ {T×N}$ such that, \\
+	for any two vectors $𝐱,𝐲 ∈ (ℤ∪\{∞\}) ^ N$,
+	each with at most $D$ finite entries, \\
+	$$ S⊙𝐱 ≠ S⊙𝐲. $$
+	\pp
+	A tropical code is said to be \alert{within maximum delay $ℓ$}
+	if $S ∈ \{0,1,…,ℓ,∞\} ^ {T×N}$.
+	\pp
+	Goal: Find good tropical codes.
+\end{frame}
+
+\def\tubepop#1#2,{\xdef\car{#1}\xdef\cdr{#2}}
+\def\eatubepop{\expandafter\tubepop}
+\tikzset{
+	syringe/.pic={
+		\tikzset{scale=1/5,rotate=-30,name prefix/.get=\person}
+		\draw(0,0)--(0,-3)node{\person};
+		\draw(-2,6)-|(-1cm-10*lw,1)(1cm+10*lw,1)|-(2,6);
+		\draw[line width=5*lw](-1,0)rectangle(1,2);
+		\filldraw[PMS3015,line width=3*lw](-1,0)rectangle(1,3);
+		\fill[\person](-1,0)rectangle(1,3);
+		\draw(-1,9)--(1,9)(-1/2,9)|-(-1,3cm+10*lw)--+(2,0)-|(1/2,9);
+		\draw(0,3)node()[transform shape,inner xsep=2cm,inner ysep=6cm]{};
+	},
+	tube/.pic={
+		\begin{scope}[transparency group,scale=1/5,rotate=-30]
+			\draw[.](-1cm-10*lw,1)--+(0,7)(1cm+10*lw,1)--+(0,7);
+			\draw[.,line width=5*lw](-1,2)--(-1,1/2)--(0,-1/2)--(1,1/2)--(1,2)
+				node[right,name prefix/.get=\tube]{\eatubepop\tube,\car};
+			\filldraw[.,PMS3015,line width=3*lw]
+				(-1,3)--(-1,1/2)--(0,-1/2)--(1,1/2)--(1,3);
+			\eatubepop\tubecontentstring{},
+			\ifx\car\pgfutil@empty\else
+				\fill[PMS3015,\car](-1,1)--(-1,1/2)--(0,-1/2)--(1,1/2)|-cycle;
+			\fi
+			\foreach\y in{1,...,7}{
+				\eatubepop\cdr{},
+				\ifx\car\pgfutil@empty\else
+					\fill[PMS3015,\car](-1,\y)rectangle+(2,1);
+				\fi
+			}
+			\draw(0,4)node()[transform shape,inner xsep=2cm,inner ysep=5cm]{};
+		\end{scope}
+	},
+	X/.style={PMS116},
+	Y/.style={PMS7490},
+	Z/.style={PMS144},
+	T/.code={\def\tubecontentstring{#1}},
+}
+
+\begin{frame}\centering
+	\huge\alert{Why Delay?}
+	\par
+	\Huge How Does Delaying Help GT?
+\end{frame}
+
+\begin{frame}
+	\begin{tikzpicture}	
+		\draw(0,4)pic(X){syringe}(0,2)pic(Y){syringe}(0,0)pic(Z){syringe};
+		\draw[uncover=<2->]
+			(5,3) pic(B1)[T=Z]{tube}
+			(5,1) pic(A1)[T=X]{tube}
+			(Z) edge[->,'] node[sloped,auto]{add} (B1)
+			(X) edge[->]   node[sloped,auto]{add} (A1)
+		;
+		\draw[only=<3->]
+			(9,3) pic(B2)[T=ZZ]{tube}
+			(9,1) pic(A2)[T=XX]{tube}
+			(B1) edge[->>]node[auto,']{dup} (B2)
+			(A1) edge[->>]node[auto]  {dup} (A2)
+		;
+		\draw[uncover=<4->]
+			(9,3) pic(B2)[T=ZZY]{tube}
+			(9,1) pic(A2)[T=XXY]{tube}
+			(B1) edge[->>]node[auto,']{dup} (B2)
+			(A1) edge[->>]node[auto]  {dup} (A2)
+			(Y) edge[->,bend left=30]    node[sloped,auto]{add} (B2)
+			(Y) edge[->,bend right=30,'] node[sloped,auto]{add} (A2)
+		;
+		\draw[only=<5->]
+			(13,3) pic(B3)[T=ZZZZYY]{tube}
+			(13,1) pic(A3)[T=XXXXYY]{tube}
+			(B2) edge[->>]node[auto,']{dup} (B3)
+			(A2) edge[->>]node[auto]  {dup} (A3)
+		;
+		\draw[uncover=<6->]
+			(13,3) pic(B3)[T=ZZZZYYX]{tube}
+			(13,1) pic(A3)[T=XXXXYYZ]{tube}
+			(B2) edge[->>]node[auto,']{dup} (B3)
+			(A2) edge[->>]node[auto]  {dup} (A3)
+			(X) edge[->,bend left=20,'] node[sloped,auto]{add} (B3)
+			(Z) edge[->,bend right=20]  node[sloped,auto]{add} (A3)
+		;
+	\end{tikzpicture}
+	\\[-5mm]
+	\[\begin{bmatrix}
+		a \\ b
+	\end{bmatrix}
+	≔
+	\begin{bmatrix}
+		0 & 1 & 2 \\
+		2 & 1 & 0
+	\end{bmatrix}
+	⊙
+	\begin{bmatrix}
+		x \\ y \\ z
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+		\min(\, 0+x\,,\, 1+y\,,\, 2+z \,) \\
+		\min(\, 2+x\,,\, 1+y\,,\, 0+z \,)
+	\end{bmatrix}\]
+\end{frame}
+
+\begin{frame}\frametitle{Decoding the Previous Slide}
+	Suppose at most one person is infected.
+	\par
+	X is infected iff $a-b = -2$. \\
+	Y is infected iff $a-b = 0$. \\
+	Z is infected iff $a-b = 2$.   
+	\begin{tikzpicture}[overlay, shift={(4,-1)}]
+		\draw[->] (0,0) -- (0,5) node [left] {$b$};
+		\draw[->] (0,0) -- (5,0) node [right] {$a$};
+		\begin{scope} [line width=.7071cm, line cap=butt]
+			\draw[X] (0,2) -- node[sloped, black] {X is sick} (3,5);
+			\draw[Y] (0,0) -- node[sloped, black] {Y is sick} (4.5,4.5);
+			\draw[Z] (2,0) -- node[sloped, black] {Z is sick} (5,3);
+		\end{scope}
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}\frametitle{Main Results on Nonadaptive Tropical GT}
+	When there is $D = 1$ infected person in a population of size $N$, \\
+	and the delay is limited to $ℓ$ cycles,
+	we have a construction with $N ≈ Tℓ^{T-1}$.
+	\par
+	When there are $D = 2$ infected persons in a population of size $N$: \\
+	\begin{itemize}
+		\item The first construction uses $T ≈ 2√N$ tests.  \\
+		In this construction, every person is present in only two tests.
+		\item The second construction limits the delay
+		to $ℓ ≈ ㏒₂(N) / ㏒₂(㏒₂N)$ cycles \\
+		and uses $T ≈ 1.01 ㏒₂N$ tests.
+		This outperforms the IT bound of binary GT.
+	\end{itemize}
+	\par
+	For general $D$, we give one necessary condition and two sufficient
+	conditions.
+\end{frame}
+
+\begin{frame}\frametitle{Main Results on Adaptive Tropical GT}
+	When adaptive testing is allowed, $T = 4$ tests are sufficient to find \\
+	$D = 2$ infected persons among arbitrarily many persons.
+	\par
+	In general, $T = 3D+1$ adaptive tests are sufficient \\
+	to locate $D$ infected persons among arbitrarily many persons. \\
+	For this construction, one does not need to know $D$ beforehand.
+	\par
+	When delays are limited to $ℓ$ cycles, we show
+	that $T ≈ 4D㏒_ℓN$ tests suffice.
+\end{frame}
+
+\begin{frame}\frametitle{Summary of Novelty}
+	\begin{tikzpicture} [overlay]
+		\path (12,-2.5) node {\includegraphics[width=6cm]{virus2.jpg}};
+	\end{tikzpicture}
+	1. We use $x ⊕ y ≔ \min(x, y)$ to characterize the result \\
+	   of mixing Ct values $x$ and $y$.  This simplifies decoding.
+	\pp
+	2. We use $δ ⊙ x ≔ δ + x$, i.e., delaying, to enhance GT. \\
+	   This inspires new combinatorics problems.
+	\pp
+	3. Tropical matrix multiplication becomes \\
+	   a succinct language.  Nonadaptive tropical GT \\
+	   looks like ``tropical compressed sensing.''
+\end{frame}
+
+\begin{frame}\frametitle{Future Works \\ Open to Questions}
+	• To what extend does compressed sensing apply to tropical case?
+	\par
+	• Random coding approach? Asymptotics?
+	\par
+	• Noisy/erroneous measurements?
+	\par
+	\centering
+	\vskip5mm
+	\inserttitlegraphic
+	\vskip0pt plus-1fill
+\end{frame}
+
+\appendix
+
+\begin{frame}\centering
+	\huge\alert{Appendix}
+	\par
+	\Huge PCR Error Models
+\end{frame}
+
+\begin{frame}\frametitle{Error Models of PCR}
+	Error model 1: Ct value is rounded to the nearest integer.
+	\par
+	Error model 2: Use fractional cycle counts (whatever that means). \\
+	(When optimizing PCR for time,
+	earlier cycles take more time and later cycles take less time.) \\
+	Not all single-stranded DNA will be completed;
+	DNA increases $1.9$-fold or $2$-fold.
+	\par
+	Error introduced independently:  Assume tropical addition.
+\end{frame}
+
+\begin{frame}\centering
+	\huge\alert{Appendix}
+	\par
+	\Huge Simulation Plots
+\end{frame}
+
+\fontsize{11pt}{11pt}\selectfont
+\newcount\accumulatenumplots
+\tikzset{
+	ROC/.style={
+		overlay, shift={(-8.5,-6.5)}
+	}
+}
+\pgfplotsset{
+	every axis/.style={cycle list shift=\the\accumulatenumplots},
+	cycle multiindex* list={
+		PMS116,PMS7490,PMS1245,PMS3115,PMS144\nextlist
+		mark=o,mark size=1.5\\mark=+\\mark=triangle\\mark=*,mark size=1\\mark=x\\
+		every mark/.append style={yscale=-1},mark size=2,mark=triangle*\\\nextlist
+	},
+	legend image code/.code={
+		\draw[mark repeat=2,mark phase=2,#1]plot coordinates{
+			(-4pt,-6pt)(0pt,2pt)(8pt,6pt)
+		};
+	},
+	RoC/.style={
+		yticklabel=\pgfmathprintnumber\tick\%,
+		xticklabel=\pgfmathprintnumber\tick\%,
+		xticklabel style={rotate=90},
+		xlabel=false positive rate ($1-{}$specificity),
+		ylabel=true positive rate (sensitivity),
+		xlabel near ticks,ylabel near ticks,
+		y label style={inner sep=0pt},
+		legend pos=south east,
+		legend style={draw=white,fill=PMS3015}
+	}
+}
+
+\pgfplotstableread{
+   5fp   5sen   6fp   6sen   7fp   7sen   8fp   8sen   9fp   9sen   10fp  10sen
+   0.463 99.323 0.805 98.907 1.273 98.394 1.873 97.793 2.627 97.088 3.531 96.314
+   0.463 99.323 0.805 98.907 1.273 98.394 1.873 97.793 2.627 97.088 3.531 96.314
+   0.464 99.325 0.808 98.91  1.278 98.4   1.879 97.801 2.636 97.099 3.545 96.329
+   0.471 99.331 0.82  98.924 1.296 98.42  1.905 97.83  2.673 97.139 3.591 96.38 
+   0.485 99.347 0.842 98.95  1.335 98.455 1.959 97.885 2.745 97.213 3.685 96.478
+   0.51  99.367 0.883 98.989 1.397 98.513 2.048 97.97  2.865 97.33  3.843 96.637
+   0.545 99.399 0.943 99.043 1.49  98.592 2.177 98.087 3.043 97.488 4.074 96.839
+   0.596 99.443 1.027 99.109 1.611 98.695 2.351 98.228 3.277 97.686 4.376 97.102
+   0.66  99.491 1.137 99.193 1.768 98.814 2.571 98.401 3.57  97.908 4.759 97.405
+   0.741 99.545 1.269 99.286 1.967 98.955 2.839 98.594 3.924 98.167 5.214 97.737
+   0.843 99.604 1.431 99.385 2.192 99.102 3.155 98.798 4.347 98.438 5.746 98.084
+   0.961 99.668 1.619 99.488 2.46  99.263 3.518 99.003 4.824 98.719 6.344 98.444
+   1.105 99.746 1.828 99.596 2.762 99.421 3.941 99.221 5.362 99.006 7.011 98.793
+   1.256 99.821 2.069 99.703 3.11  99.575 4.406 99.435 5.955 99.286 7.747 99.131
+   1.432 99.879 2.332 99.81  3.495 99.725 4.911 99.644 6.602 99.548 8.522 99.447
+   1.634 99.944 2.635 99.899 3.922 99.865 5.474 99.821 7.307 99.784 9.365 99.728
+   1.855 100    2.983 100    4.391 100    6.09  100    8.08  100   10.291 100   
+}\tablepreval
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=5fp,y=5sen]{\tablepreval};\addlegendentry{$p=5\%$}
+			\addplot table[x=6fp,y=6sen]{\tablepreval};\addlegendentry{$p=6\%$}
+			\addplot table[x=7fp,y=7sen]{\tablepreval};\addlegendentry{$p=7\%$}
+			\addplot table[x=8fp,y=8sen]{\tablepreval};\addlegendentry{$p=8\%$}
+			\addplot table[x=9fp,y=9sen]{\tablepreval};\addlegendentry{$p=9\%$}
+			\addplot table[x=10fp,y=10sen]{\tablepreval};\addlegendentry{$p=10\%$}
+		\end{axis}
+		\global\advance\accumulatenumplots6
+	\end{tikzpicture}
+	\par
+	Assume uniform Ct values on the interval $[16,32]$, $15×35$ Kirkman triple
+	system, and no delay ($ℓ=0$).  We vary the prevalence rate $p$ and plot the
+	ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	8fp    8sen    12fp   12sen   16fp   16sen   20fp   20sen   24fp   24sen
+	3.291  96.837  3.391  96.608  3.538  96.338  3.745  95.816  4.111  94.889
+	3.291  96.837  3.391  96.608  3.538  96.338  3.745  95.816  4.111  94.892
+	3.295  96.841  3.398  96.616  3.55   96.354  3.774  95.856  4.204  95.04 
+	3.311  96.855  3.422  96.643  3.597  96.404  3.876  95.979  4.513  95.462
+	3.344  96.89   3.475  96.695  3.694  96.502  4.086  96.208  5.093  96.161
+	3.396  96.941  3.564  96.776  3.854  96.66   4.418  96.54   5.972  97.082
+	3.478  97.017  3.691  96.894  4.084  96.866  4.884  96.96   7.128  98.093
+	3.584  97.11   3.865  97.048  4.387  97.122  5.482  97.454  8.557  99.071
+	3.727  97.231  4.086  97.225  4.767  97.413  6.21   97.991 10.275 100.   
+	3.899  97.364  4.357  97.437  5.223  97.737  7.062  98.547    nan     nan
+	4.105  97.516  4.684  97.667  5.755  98.089  8.022  99.078    nan     nan
+	4.344  97.685  5.057  97.914  6.35   98.442  9.089  99.547    nan     nan
+	4.616  97.869  5.477  98.172  7.016  98.804 10.282 100.       nan     nan
+	4.926  98.066  5.936  98.437  7.749  99.146    nan     nan    nan     nan
+	5.265  98.268  6.447  98.706  8.54   99.474    nan     nan    nan     nan
+	5.644  98.48   6.992  98.966  9.382  99.74     nan     nan    nan     nan
+	6.055  98.682  7.578  99.211 10.299 100.       nan     nan    nan     nan
+	6.491  98.884  8.197  99.439    nan     nan    nan     nan    nan     nan
+	6.963  99.084  8.852  99.641    nan     nan    nan     nan    nan     nan
+	7.457  99.273  9.544  99.836    nan     nan    nan     nan    nan     nan
+	7.976  99.452 10.281 100.       nan     nan    nan     nan    nan     nan
+	8.516  99.612    nan     nan    nan     nan    nan     nan    nan     nan
+	9.081  99.753    nan     nan    nan     nan    nan     nan    nan     nan
+	9.663  99.882    nan     nan    nan     nan    nan     nan    nan     nan
+	10.283 100       nan     nan    nan     nan    nan     nan    nan     nan
+}\tablerange
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC, unbounded coords=jump]
+			\addplot table[x=8fp,y=8sen]{\tablerange};\addlegendentry{$[8,32]$}
+			\addplot table[x=12fp,y=12sen]{\tablerange};\addlegendentry{$[12,32]$}
+			\addplot table[x=16fp,y=16sen]{\tablerange};\addlegendentry{$[16,32]$}
+			\addplot table[x=20fp,y=20sen]{\tablerange};\addlegendentry{$[20,32]$}
+			\addplot table[x=24fp,y=24sen]{\tablerange};\addlegendentry{$[24,32]$}
+		\end{axis}
+		\global\advance\accumulatenumplots5
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p = 10\%$, uniform Ct values, $15×35$ Kirkman triple
+	system, and no delay ($ℓ = 0$).  We vary the range of the Ct values and plot
+	the ROC curves.  Surprisingly, larger interval (consequently larger
+	variance) is easier to decode.
+\end{frame}
+
+\pgfplotstableread{
+	8fp    8sen    6fp    6sen    4fp    4sen    2fp    2sen    0fp    0sen
+	1.988  97.433  2.326  97.014  2.725  96.596  3.139  96.2    3.549  96.339
+	2.023  97.471  2.346  97.039  2.734  96.608  3.142  96.203  3.549  96.339
+	2.083  97.535  2.388  97.085  2.763  96.639  3.156  96.221  3.563  96.355
+	2.175  97.63   2.458  97.157  2.814  96.692  3.203  96.278  3.611  96.409
+	2.303  97.744  2.562  97.259  2.895  96.773  3.3    96.379  3.709  96.508
+	2.466  97.884  2.701  97.38   3.057  96.927  3.462  96.549  3.871  96.659
+	2.664  98.047  2.873  97.532  3.287  97.134  3.693  96.774  4.104  96.87 
+	2.902  98.229  3.18   97.771  3.592  97.385  4.003  97.058  4.409  97.124
+	3.18   98.421  3.568  98.049  3.979  97.68   4.389  97.389  4.785  97.42 
+	3.559  98.644  4.027  98.357  4.444  98.023  4.854  97.755  5.247  97.758
+	3.987  98.87   4.574  98.682  4.983  98.386  5.391  98.139  5.773  98.098
+	4.465  99.092  5.077  98.928  5.599  98.75   5.998  98.535  6.368  98.459
+	4.989  99.308  5.621  99.155  6.29   99.113  6.676  98.926  7.036  98.814
+	5.547  99.513  6.207  99.396  6.884  99.374  7.409  99.277  7.771  99.152
+	6.147  99.696  6.823  99.619  7.509  99.613  8.205  99.605  8.554  99.468
+	6.792  99.854  7.472  99.821  8.175  99.818  8.857  99.816  9.392  99.741
+	7.474 100.     8.16  100.     8.86  100.     9.544 100.    10.306 100.   
+}\tablelimit
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=8fp,y=8sen]{\tablelimit};\addlegendentry{$ℓ=8$}
+			\addplot table[x=6fp,y=6sen]{\tablelimit};\addlegendentry{$ℓ=6$}
+			\addplot table[x=4fp,y=4sen]{\tablelimit};\addlegendentry{$ℓ=4$}
+			\addplot table[x=2fp,y=2sen]{\tablelimit};\addlegendentry{$ℓ=2$}
+			\addplot table[x=0fp,y=0sen]{\tablelimit};\addlegendentry{$ℓ=0$}
+		\end{axis}
+		\global\advance\accumulatenumplots5
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p=10\%$, uniform Ct values on the interval
+	$[16,32]$, $15×35$ Kirkman triple system, and $ℓ·†Bernoulli†(1/2)$ delay.
+	We vary the limit of delay $ℓ$ and plot the ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	Bfp    Bsen     Ufp    Usen     0fp    0sen
+	1.99   97.42    2.4    96.751   3.543  96.327
+	2.023  97.456   2.415  96.768   3.543  96.327
+	2.082  97.519   2.446  96.803   3.556  96.342
+	2.173  97.607   2.504  96.864   3.605  96.395
+	2.298  97.718   2.601  96.967   3.704  96.496
+	2.457  97.854   2.754  97.109   3.861  96.654
+	2.659  98.017   2.974  97.3     4.093  96.866
+	2.897  98.196   3.272  97.552   4.394  97.122
+	3.172  98.386   3.653  97.843   4.772  97.425
+	3.555  98.615   4.117  98.178   5.225  97.758
+	3.985  98.846   4.646  98.52    5.756  98.116
+	4.46   99.068   5.233  98.858   6.356  98.466
+	4.977  99.284   5.848  99.173   7.026  98.823
+	5.542  99.495   6.479  99.45    7.755  99.162
+	6.15   99.682   7.095  99.685   8.527  99.471
+	6.793  99.851   7.679  99.863   9.365  99.75 
+	7.472 100.      8.193 100.     10.286 100.   
+}\tabledistri
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=Bfp,y=Bsen]{\tabledistri};\addlegendentry{Bernoulli}
+			\addplot table[x=Ufp,y=Usen]{\tabledistri};\addlegendentry{uniform}
+			\addplot table[x=0fp,y=0sen]{\tablelimit};\addlegendentry{no delay}
+		\end{axis}
+		\global\advance\accumulatenumplots3
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p=10\%$, uniform Ct values on the interval
+	$[16,32]$, $15×35$ Kirkman triple system, and $ℓ=8$.  We vary the
+	distribution of the random delay $δ$ and plot the ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	405fp  405sen   105fp  105sen   45fp   45sen    15fp   15sen
+	2.588  96.606   2.602  96.61    2.787  96.555   3.534  96.319
+	2.588  96.606   2.602  96.61    2.787  96.555   3.534  96.319
+	2.601  96.618   2.616  96.622   2.8    96.567   3.547  96.333
+	2.652  96.661   2.667  96.666   2.851  96.613   3.595  96.386
+	2.759  96.747   2.774  96.75    2.955  96.7     3.695  96.484
+	2.935  96.881   2.949  96.885   3.128  96.838   3.854  96.64 
+	3.19   97.066   3.204  97.066   3.377  97.026   4.082  96.844
+	3.53   97.3     3.544  97.295   3.713  97.261   4.385  97.107
+	3.955  97.571   3.973  97.565   4.128  97.537   4.766  97.405
+	4.471  97.879   4.49   97.87    4.634  97.839   5.227  97.738
+	5.072  98.201   5.091  98.197   5.228  98.177   5.755  98.093
+	5.76   98.537   5.776  98.531   5.892  98.515   6.354  98.447
+	6.521  98.871   6.533  98.869   6.631  98.857   7.019  98.811
+	7.356  99.192   7.368  99.192   7.44   99.181   7.747  99.141
+	8.258  99.487   8.269  99.491   8.324  99.487   8.536  99.463
+	9.23   99.751   9.237  99.754   9.27   99.746   9.372  99.74 
+	10.284 100     10.288 100.     10.296 100.     10.292 100.   
+}\tablekirkman
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=405fp,y=405sen]{\tablekirkman};\addlegendentry{$405×735$}
+			\addplot table[x=105fp,y=105sen]{\tablekirkman};\addlegendentry{$105×315$}
+			\addplot table[x=45fp,y=45sen]{\tablekirkman};\addlegendentry{$45×105$}
+			\addplot table[x=15fp,y=15sen]{\tablekirkman};\addlegendentry{$15×35$}
+		\end{axis}
+		\global\advance\accumulatenumplots4
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p = 10\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider Kirkman triple systems of different size
+	(after truncation so that the code rate $N/T = 7/3$ is fixed) and plot the
+	ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	T0fp    T0sen T1fp   T1sen  T2fp   T2sen  T3fp   T3sen  T4fp   T4sen  T5fp   T5sen  T6fp   T6sen  T7fp   T7sen  T8fp   T8sen  T9fp   T9sen
+	1.826  97.984 1.809  97.96  1.823  98.022 1.871  98.007 1.837  97.99  1.857  98.007 1.842  98.054 1.852  98.005 1.866  98.008 1.851  97.983
+	1.826  97.984 1.809  97.96  1.823  98.022 1.871  98.007 1.837  97.99  1.857  98.007 1.842  98.054 1.852  98.005 1.866  98.008 1.851  97.983
+	1.834  97.99  1.816  97.965 1.833  98.031 1.882  98.011 1.846  97.996 1.869  98.014 1.851  98.056 1.861  98.01  1.875  98.012 1.861  97.989
+	1.869  98.004 1.855  97.985 1.867  98.055 1.917  98.033 1.881  98.02  1.904  98.044 1.888  98.067 1.893  98.031 1.909  98.036 1.898  98.008
+	1.951  98.04  1.925  98.034 1.949  98.097 1.999  98.082 1.957  98.061 1.978  98.087 1.957  98.122 1.963  98.076 1.979  98.082 1.972  98.058
+	2.074  98.116 2.057  98.108 2.08   98.168 2.131  98.146 2.084  98.12  2.114  98.145 2.089  98.185 2.093  98.128 2.112  98.158 2.103  98.128
+	2.27   98.209 2.238  98.206 2.269  98.269 2.313  98.236 2.273  98.226 2.295  98.245 2.276  98.272 2.273  98.224 2.3    98.257 2.288  98.22 
+	2.535  98.357 2.498  98.352 2.528  98.405 2.562  98.369 2.528  98.347 2.545  98.353 2.523  98.397 2.541  98.351 2.559  98.39  2.548  98.348
+	2.857  98.494 2.823  98.521 2.865  98.551 2.894  98.533 2.848  98.509 2.888  98.51  2.86   98.554 2.874  98.507 2.889  98.518 2.878  98.493
+	3.284  98.661 3.241  98.704 3.265  98.703 3.305  98.693 3.257  98.67  3.293  98.689 3.282  98.736 3.276  98.683 3.301  98.687 3.286  98.684
+	3.761  98.875 3.737  98.906 3.737  98.897 3.785  98.865 3.734  98.85  3.773  98.879 3.767  98.933 3.761  98.873 3.779  98.834 3.776  98.868
+	4.31   99.074 4.304  99.097 4.316  99.08  4.343  99.051 4.293  99.052 4.34   99.067 4.318  99.142 4.338  99.072 4.344  99.046 4.357  99.067
+	4.964  99.283 4.916  99.3   4.962  99.273 4.98   99.284 4.94   99.235 4.978  99.267 4.98   99.322 4.967  99.263 4.981  99.248 4.992  99.241
+	5.674  99.489 5.647  99.493 5.683  99.487 5.709  99.473 5.668  99.425 5.706  99.459 5.687  99.489 5.714  99.483 5.689  99.445 5.712  99.412
+	6.481  99.671 6.432  99.702 6.473  99.658 6.525  99.649 6.454  99.607 6.492  99.645 6.482  99.657 6.534  99.66  6.457  99.648 6.513  99.617
+	7.353  99.832 7.331  99.867 7.358  99.831 7.356  99.833 7.363  99.791 7.365  99.82  7.369  99.825 7.432  99.845 7.324  99.811 7.388  99.816
+	8.331 100.    8.267 100.    8.347 100.    8.297 100.    8.33  100.    8.307 100.    8.315 100.    8.389 100.    8.281 100.    8.339 100.   
+}\tabletapestry
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC,every axis plot/.append style={line width=.1}]
+			\draw(4.5,99.3)circle(.8pt)
+				node[above left,align=right]{Tapestry \\ \& std devi}
+				(4.5+2.41,99.3)--(4.5-2.41,99.3)
+				(4.5,100)coordinate(T+y)(4.5,99.3-2.55)coordinate(T-y)
+				(5,99)circle(.8pt)node[below right]{$(5\%,99\%)$};
+			\addplot table[x=T0fp,y=T0sen]{\tabletapestry};
+			\addplot table[x=T1fp,y=T1sen]{\tabletapestry};
+			\addplot table[x=T2fp,y=T2sen]{\tabletapestry};
+			\addplot table[x=T3fp,y=T3sen]{\tabletapestry};
+			\addplot table[x=T4fp,y=T4sen]{\tabletapestry};
+			\addplot table[x=T5fp,y=T5sen]{\tabletapestry};
+			\addplot table[x=T6fp,y=T6sen]{\tabletapestry};
+			\addplot table[x=T7fp,y=T7sen]{\tabletapestry};
+			\addplot table[x=T8fp,y=T8sen]{\tabletapestry};
+			\addplot table[x=T9fp,y=T9sen]{\tabletapestry};
+		\end{axis}
+		\draw(T+y)--(T-y);
+		\global\advance\accumulatenumplots10
+	\end{tikzpicture}
+	\par
+	Assume $D = 10$ patients within $N = 105$ persons (infection rate $9.52\%$),
+	uniform Ct values on $[16,32]$, $45×105$ Kirkman triple system (truncation
+	of a $45×330$ Kirkman triple system), and no delay ($ℓ = 0$).  We plot $10$
+	ROC curves.  Each curve is $10{,}000$ encoding--decodings, i.e., $450{,}000$
+	tubes, $100{,}000$ patients, and $1{,}050{,}000$ test takers.  Compare this
+	to Tapestry's data point and its standard deviations $(4.50\% ± 2.41\%,
+	99.30\% ± 2.55\%)$ (Table S.XII of the preprint version
+	[Ghosh et al.\ 2020]).
+\end{frame}
+
+\pgfplotstableread{
+	97fp   97sen    49fp   49sen    17fp   17sen    Pfp    Psen
+	0.892  96.809   1.015  96.099   1.862  94.293   2.9    96.004
+	0.892  96.809   1.015  96.099   1.862  94.303   2.9    96.004
+	0.893  96.809   1.022  96.108   1.922  94.424   2.901  96.005
+	0.899  96.815   1.045  96.141   2.037  94.625   2.907  96.013
+	0.916  96.832   1.095  96.204   2.203  94.906   2.927  96.037
+	0.953  96.869   1.179  96.31    2.416  95.242   2.972  96.091
+	1.018  96.934   1.301  96.462   2.671  95.626   3.056  96.191
+	1.12   97.037   1.469  96.661   2.963  96.066   3.193  96.347
+	1.268  97.179   1.682  96.92    3.297  96.515   3.395  96.565
+	1.468  97.378   1.944  97.211   3.659  96.973   3.672  96.852
+	1.727  97.629   2.254  97.55    4.047  97.436   4.039  97.206
+	2.047  97.936   2.619  97.937   4.463  97.907   4.501  97.631
+	2.436  98.294   3.025  98.338   4.9    98.355   5.065  98.096
+	2.891  98.69    3.482  98.76    5.362  98.806   5.721  98.588
+	3.414  99.12    3.988  99.176   5.834  99.233   6.482  99.093
+	4.008  99.557   4.536  99.596   6.327  99.626   7.334  99.561
+	4.69  100.      5.135 100.      6.837 100.      8.296 100.   
+}\tabelpbest
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=97fp,y=97sen]{\tabelpbest};\addlegendentry{$(2,4,97)$-S}
+			\addplot table[x=49fp,y=49sen]{\tabelpbest};\addlegendentry{$(2,3,49)$-S}
+			\addplot table[x=17fp,y=17sen]{\tabelpbest};\addlegendentry{$K_{17}$}
+			\addplot table[x=Pfp,y=Psen]{\tabelpbest};\addlegendentry{P-Best}
+		\end{axis}
+		\global\advance\accumulatenumplots4
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p = 2\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider $(2,4,97)$-Steiner system (aka $2$-$(97,4,1)$
+	design), $(2,3,49)$-Steiner system (aka $2$-$(49,3,1)$ design), complete
+	graph on $17$ vertices, and P-BEST [Shental et al.\ 2020].  They all have
+	code rate $N/T = 8$.  We plot their ROC curves.
+\end{frame}
+
+\pgfplotstableread{
+	183fp  183sen   15fp   15sen    61fp   61sen
+	0.65   91.622   3.018  96.277   1.182  86.561
+	0.65   91.622   3.019  96.287   1.182  86.583
+	0.656  91.633   3.052  96.356   1.244  86.87 
+	0.679  91.679   3.12   96.477   1.365  87.367
+	0.727  91.784   3.227  96.664   1.54   88.01 
+	0.81   91.995   3.37   96.865   1.766  88.772
+	0.931  92.29    3.552  97.125   2.039  89.643
+	1.095  92.696   3.775  97.407   2.351  90.582
+	1.304  93.19    4.028  97.709   2.709  91.595
+	1.564  93.803   4.326  98.038   3.092  92.62 
+	1.875  94.507   4.657  98.358   3.508  93.683
+	2.234  95.298   5.015  98.689   3.946  94.744
+	2.643  96.161   5.405  98.98    4.42   95.845
+	3.099  97.062   5.822  99.282   4.921  96.933
+	3.611  98.033   6.272  99.567   5.441  98.   
+	4.169  99.029   6.744  99.792   5.982  99.028
+	4.775 100.      7.236 100.      6.546 100.   
+}\tablehyper
+\begin{frame}[t]
+	\leftskip10cm
+	\begin{tikzpicture}[ROC]
+		\begin{axis}[RoC]
+			\addplot table[x=183fp,y=183sen]{\tablehyper};\addlegendentry{$(2,3,183)$-S}
+			\addplot table[x=15fp,y=15sen]{\tablehyper};\addlegendentry{$K^{(3)}_{15}$}
+			\addplot table[x=61fp,y=61sen]{\tablehyper};\addlegendentry{$K_{61}$}
+		\end{axis}
+		\global\advance\accumulatenumplots3
+	\end{tikzpicture}
+	\par
+	Assume prevalence rate $p = 0.5\%$, uniform Ct values on $[16,32]$, and no
+	delay ($ℓ = 0$).  We consider Kirkman triple system on $183$ vertices,
+	complete $3$-uniform hypergraph on $15$ vertices, and complete graph on $61$
+	vertices.  The first two have code rate $N/T = 30+1/3$; the last one has
+	code rate $N/T = 30$.  We plot their ROC curves.
+\end{frame}
+
+\fontsize{12pt}{12pt}\selectfont
+
+\begin{frame}\centering
+	\huge\alert{Appendix}
+	\par
+	\Huge Comparison of GT Models
+\end{frame}
+
+\pgfplotstableread{
+	Regime             Reading                           Remixing            
+	Binary             {Negative, Positive}              $†Neg†∨†Pos†=†Pos†$ 
+	Tropical           $2^{-∞},2^{-40},\dotsc,2^{-12}$   $\min(30,15)=15$    
+	Semiquantitative   $[0,3),[3,6),[6,9),\dotsc$        $[0,3)+[3,6)=[3,9)$ 
+	Quantitative       $0,1,2,3,4,5,\dotsc$              $8+9=17$            
+}\tablequant
+\begin{frame}\centering
+	Four ways to quantify and combine test outputs.  Binary tests output
+	``negative'' or ``positive''; combining samples means logical OR.
+	Quantitative tests output numbers; combining samples means addition.
+	The other two regimes lie in between.
+	\par
+	\def\arraystretch{2}
+	\pgfplotstabletypeset[
+		every head row/.style={before row=\toprule,after row=\midrule},
+		every last row/.style={after row=\bottomrule},string type,
+	]\tablequant
+\end{frame}
+
+\end{document}
